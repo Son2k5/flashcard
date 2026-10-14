@@ -616,7 +616,7 @@
       outline: 4px solid var(--accent)
     }
 
-    .upload-zone svg {
+    .upload-zone > svg {
       width: 32px;
       height: 32px;
       margin-bottom: 10px;
@@ -1272,11 +1272,29 @@
       background: var(--panel);
       color: var(--ink);
       border: 1px solid var(--line);
-      border-radius: 22px;
+      border-radius: 0;
       width: min(760px, calc(100% - 30px));
       padding: 26px;
       max-height: 85vh;
       overflow: auto
+    }
+
+    .dialog-topbar {
+      position: sticky;
+      top: -1px;
+      z-index: 2;
+      display: flex;
+      justify-content: flex-end;
+      background: var(--panel);
+      padding-bottom: 8px;
+    }
+
+    .dialog-close {
+      font-size: 28px;
+      line-height: 1;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 0;
     }
 
     dialog::backdrop {
@@ -2708,7 +2726,7 @@
     .gate-top {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-end;
       margin-bottom: 20px
     }
 
@@ -2726,6 +2744,27 @@
     .header {
       flex-wrap: wrap
     }
+    .file-guide { margin: 24px 0; }
+    .file-guide > p { margin: 8px 0 18px; }
+    .file-guide-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .file-guide-item { padding: 18px; border: 1px solid var(--line); border-radius: 16px; min-width: 0; }
+    .file-guide-item h3 { margin: 10px 0 8px; }
+    .file-guide-item p { font-size: 14px; margin: 8px 0 16px; }
+    .file-guide-note { font-size: 13px; margin-top: 16px; }
+    .library-switcher { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px 20px; margin: 24px 0; padding: 24px; }
+    .library-switcher label { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-weight: 600; }
+    .library-switcher .switcher-field { min-width: 0; }
+    .library-switcher .pill { font-size: 12px; font-weight: 400; }
+    .library-switcher select { display: block; width: 100%; min-width: 0; margin: 0; min-height: 48px; text-overflow: ellipsis; }
+    .library-switcher > .btn { min-height: 48px; }
+    .library-switcher .switcher-hint { grid-column: 1 / -1; margin: 0; font-size: 13px; line-height: 1.6; }
+    .file-guide-item { display: flex; flex-direction: column; align-items: flex-start; }
+    .file-guide-item .btn { margin-top: auto; }
+    @media (max-width: 700px) {
+      .file-guide-grid { grid-template-columns: 1fr; }
+      .library-switcher { grid-template-columns: minmax(0, 1fr); padding: 20px; }
+      .library-switcher > .btn { width: 100%; }
+    }
   </style>
 </head>
 
@@ -2733,7 +2772,7 @@
   <div id="storage-warning" class="notice error" role="alert" hidden></div>
   <section id="gate" class="gate">
     <div class="panel gate-card">
-      <div class="gate-top"><span class="brand-mark">🌿</span><button type="button" class="icon-btn theme-toggle"
+      <div class="gate-top"><button type="button" class="icon-btn theme-toggle"
           data-action="theme" id="gate-theme"></button></div>
       <div class="eyebrow">GÓC HỌC CỦA NHÓM MÌNH</div>
       <h1>Chào bạn, vào học nhé.</h1>
@@ -2809,17 +2848,60 @@
       function parse(html, fileName = 'Bộ từ.docx') {
         // Tránh thẻ đóng trang dạng thô bị công cụ xem trước chèn script vào giữa chuỗi JS.
         const root = new DOMParser().parseFromString('\x3c!doctype html>\x3chtml>\x3cbody>' + html + '\x3c/body>\x3c/html>', 'text/html').body;
-        if (!root.querySelector('table')) throw Error('File không có bảng. Hãy đặt từ, nghĩa và ghi chú vào bảng từ hai cột trở lên.');
         const chapters = [], warnings = []; let chapter = null, section = null, count = 0, tableNum = 0;
         const hasChapters = !!root.querySelector('h2');
         const names = new Map();
         function newChapter(name) { const norm = normalize(name), occurrence = names.get(norm) || 0; names.set(norm, occurrence + 1); chapter = { id: 'c' + hash(norm + '|' + occurrence), name, sections: [] }; chapters.push(chapter); section = null; }
         function newSection(name) { const n = chapter.sections.filter(s => normalize(s.name) === normalize(name)).length; section = { id: 's' + hash(chapter.id + '|' + normalize(name) + '|' + n), name, cards: [] }; chapter.sections.push(section); }
+        function addCard(raw, meaning, note = '') {
+          const parts = splitWord(raw), definition = splitWord(meaning);
+          if (!parts.word || !definition.word) return false;
+          if (!chapter) newChapter('Tất cả');
+          if (!section) newSection('Từ vựng chung');
+          const pos = parts.pos || definition.pos;
+          section.cards.push({ id: cardId(parts.word, definition.word), ...parts, pos, meaning: definition.word, note });
+          count++;
+          return true;
+        }
+        function addVocabulary(raw, meaning, note = '') {
+          const words = raw.split(/\s*(?:><|<>|≠|↔)\s*/), meanings = meaning.split(/\s*(?:><|<>|≠|↔)\s*/);
+          if (words.length === 2 && meanings.length === 2 && words.every(Boolean) && meanings.every(Boolean)) {
+            words.forEach((word, i) => addCard(word, meanings[i], [note, 'Đối nghĩa: ' + words[1 - i] + ' — ' + meanings[1 - i]].filter(Boolean).join('\n')));
+            return true;
+          }
+          if (words.length > 1 || meanings.length > 1) warnings.push('Cặp đối nghĩa chưa có đủ hai từ và hai nghĩa tương ứng; giữ nguyên để bạn kiểm tra: ' + raw + ': ' + meaning);
+          return addCard(raw, meaning, note);
+        }
+        function entry(line) {
+          const match = line.trim().replace(/^(?:[•●▪*–-]\s+|\d+[.)]\s*)/, '').match(/^([^:：]+)[:：]\s*(.+)$/);
+          if (!match) return null;
+          let word = match[1].trim(), meaning = match[2].trim();
+          // Word commonly places the part of speech after the vocabulary.
+          const suffix = word.match(/\s*(\([^()]+\))\s*$/);
+          if (suffix && splitWord(suffix[1]).pos) word = suffix[1] + ' ' + word.slice(0, suffix.index).trim();
+          return word && meaning && splitWord(word).word && splitWord(meaning).word ? { word, meaning } : null;
+        }
+        function addLine(line) {
+          const halves = line.split(/\s*(?:><|<>|≠|↔)\s*/);
+          const pair = halves.length === 2 ? halves.map(entry) : [];
+          if (pair.length === 2 && pair.every(Boolean)) {
+            pair.forEach((item, i) => addCard(item.word, item.meaning, 'Đối nghĩa: ' + splitWord(pair[1 - i].word).word + ' — ' + splitWord(pair[1 - i].meaning).word));
+            return true;
+          }
+          const item = entry(line);
+          if (item) return addVocabulary(item.word, item.meaning);
+          if (/[:：]|><|<>|≠|↔/.test(line)) warnings.push('Dòng chưa đủ từ và nghĩa, đã bỏ qua: ' + line);
+          return false;
+        }
         const headers = [['từ', 'nghĩa'], ['từ vựng', 'nghĩa'], ['word', 'meaning'], ['words', 'meanings'], ['cụm', 'viết tắt'], ['cụm từ', 'viết tắt'], ['単語', '意味'], ['단어', '뜻'], ['词语', '意思']];
         for (const node of Array.from(root.children)) {
           const text = textOf(node).trim();
           if (node.tagName === 'H2') { newChapter(text || 'Chapter chưa đặt tên'); continue; }
           if (node.tagName !== 'TABLE') {
+            if (node.matches('p,ul,ol,div') && (chapter || !hasChapters)) {
+              const lines = text.split(/\n/).map(line => line.trim()).filter(Boolean);
+              if (lines.reduce((found, line) => addLine(line) || found, false)) continue;
+            }
             const bold = node.matches('p') && node.querySelector('strong,b') && Array.from(node.querySelectorAll('strong,b')).filter(b => !b.parentElement.closest('strong,b')).map(b => b.textContent).join('').trim() === node.textContent.trim();
             if (text && (bold || node.matches('h3,h4')) && (chapter || !hasChapters)) { if (!chapter) newChapter('Tất cả'); newSection(text); }
             continue;
@@ -2833,13 +2915,12 @@
             if (headers.some(([w, m]) => normalize(values[0]) === w && normalize(values[1]) === m)) return;
             if (!values[0] || !values[1]) { warnings.push(`${chapter.name}, bảng ${tableNum}, dòng ${index + 1}: thiếu từ hoặc nghĩa; đã bỏ qua.`); return; }
             const parts = splitWord(values[0]); if (!parts.word) { warnings.push(`Bảng ${tableNum}, dòng ${index + 1}: thiếu từ sau tiền tố loại từ.`); return; }
-            if (!section) newSection('Từ vựng chung');
-            section.cards.push({ id: cardId(parts.word, values[1]), ...parts, meaning: values[1], note: values.slice(2).filter(Boolean).join('\n\n') }); count++; usable++;
+            if (addVocabulary(values[0], values[1], values.slice(2).filter(Boolean).join('\n\n'))) usable++;
           });
           if (!usable) warnings.push(`Bảng ${tableNum}: không có dòng từ vựng hợp lệ.`);
         }
         const valid = chapters.map(c => ({ ...c, sections: c.sections.filter(s => s.cards.length) })).filter(c => c.sections.length);
-        if (!count) throw Error('Bảng sai định dạng hoặc không có dữ liệu: mỗi dòng cần từ và nghĩa ở hai ô đầu, không gộp ô.');
+        if (!count) throw Error('File không có bảng hoặc dòng từ vựng hợp lệ; bảng sai định dạng cần có từ và nghĩa ở hai ô đầu, không gộp ô. Có thể viết mỗi dòng như tools: (n) công cụ hoặc hot: nóng >< cold: lạnh.');
         return { name: fileName.replace(/\.docx$/i, ''), sourceName: fileName, hasChapters, chapters: valid, warnings };
       }
       const questionId = (word, options, answer) => 'q' + hash(JSON.stringify([normalize(word), options.map(normalize), answer]));
@@ -3106,9 +3187,22 @@
     function navigate(target) { if (!leaveSession()) return; view = target; search = ''; render(); scrollTo({ top: 0 }); }
     function openDeck(id) { if (!leaveSession()) return; store.activeDeckId = id; save('meta'); view = deck().kind === 'quiz' ? 'quiz-setup' : 'library'; search = ''; render(); scrollTo({ top: 0 }); }
     const intro = (tag, title, sub, extra = '') => `<section class="intro"><div><div class="eyebrow">${tag}</div><h1>${title}</h1><p>${sub}</p></div>${extra}</section>`;
-    function renderDecks() { const cards = store.decks.map(d => { const all = visibleCards(d), k = all.filter(c => d.progress[c.id]?.known).length; return `<article class="panel deck-card"><div class="row spread"><span class="chapter-icon">${icon('book')}</span><span class="pill">${d.kind === 'quiz' ? 'Trắc nghiệm mọi môn' : esc(languages[d.language] || d.language)}</span></div><h2>${esc(d.name)}</h2><p class="muted">${all.length} ${d.kind === 'quiz' ? 'câu hỏi' : 'từ'} · ${Core.organize(d).length} nhóm</p><div class="progress-label"><span>${k} ${d.kind === 'quiz' ? 'câu đã nắm vững' : 'từ đã thuộc'}</span><strong>${Math.round(k * 100 / (all.length || 1))}%</strong></div><div class="progress"><i style="width:${k * 100 / (all.length || 1)}%"></i></div><div class="row spread" style="margin-top:20px">${button('open-deck', (d.kind === 'quiz' ? 'Luyện trắc nghiệm ' : 'Mở bộ từ ') + icon('arrow'), 'primary small', `data-id="${d.id}"`)}${button('deck-settings', 'Cài đặt', 'small', `data-id="${d.id}"`)}</div></article>`; }).join(''); $('#main').innerHTML = intro('MỖI NGÀY MỘT CHÚT', 'Học mọi môn, mỗi ngày.', 'Học từ vựng hoặc nhập bộ câu hỏi trắc nghiệm Word/PDF cho mọi môn.', `<div class="row">${button('upload', icon('upload') + ' Thêm bộ từ', 'primary')}${button('upload-quiz', icon('plus') + ' Nhập trắc nghiệm', 'primary')}</div>`) + (store.decks.length ? `<div class="grid">${cards}</div>` : `<div class="empty-hero"><div class="upload-zone" id="drop-zone">${icon('upload')}<h2>Bắt đầu từ tài liệu của bạn</h2><p>Kéo thả file Word (.docx) hoặc PDF vào đây. Tự nhận diện trắc nghiệm hoặc bảng từ vựng.</p>${button('upload', 'Chọn file Word / PDF ' + icon('arrow'), 'primary')}<p>Đọc ngay trên trình duyệt · Không gửi file lên mạng</p></div><div class="sample-area"><div class="sample-card"><div class="sample-inner"><small>MỘT THẺ, MỘT KẾT NỐI MỚI</small><strong>木漏れ日</strong><span class="badge">Tiếng Nhật</span><p>Nắng xuyên qua kẽ lá</p><small>Ngôn ngữ nào cũng có một nơi ở đây.</small></div></div></div></div>`); }
+    function fileGuide() {
+      return `<section class="panel file-guide" aria-label="Hướng dẫn file có thể nộp"><h2>Bạn có thể nộp những file nào?</h2><p class="muted">Chọn đúng loại tài liệu để bắt đầu học. File được đọc ngay trên thiết bị của bạn.</p><div class="file-guide-grid"><article class="file-guide-item"><span class="pill">.docx</span><h3>Bộ từ vựng</h3><p>File Word có bảng gồm cột <b>Từ</b> và <b>Nghĩa</b>, hoặc mỗi dòng một từ, ví dụ: <b>apple: quả táo</b>. Dùng Heading 2 để chia chương.</p>${button('upload', 'Thêm bộ từ', 'small primary')}</article><article class="file-guide-item"><span class="pill">.docx · .pdf</span><h3>Câu hỏi trắc nghiệm</h3><p>Mỗi câu có câu hỏi và 4 lựa chọn A, B, C, D. Có thể ghi <b>Đáp án: A</b>. PDF cần có văn bản chọn/copy được; kiểm tra đáp án ở bước xem trước.</p>${button('upload-quiz', 'Nhập trắc nghiệm', 'small primary')}</article><article class="file-guide-item"><span class="pill">.json</span><h3>Khôi phục tiến độ</h3><p>Dùng file đã tạo bằng <b>Xuất tiến độ</b> của ứng dụng. Khôi phục sẽ thay thế dữ liệu hiện tại; hãy xuất bản sao lưu trước.</p>${button('import-backup', 'Nhập tiến độ', 'small')}</article></div><p class="muted file-guide-note">Tối đa 30 MB/file. Chưa hỗ trợ .doc, Excel, ảnh hoặc PDF scan. Hãy lưu .doc thành .docx; chuyển bản scan thành văn bản trước khi nhập.</p></section>`;
+    }
+    function librarySwitcher() {
+      return `<section class="panel library-switcher" aria-label="Chuyển bộ trong thư viện"><div class="switcher-field"><label for="library-deck">Chuyển bộ học <span class="pill">${store.decks.length} bộ trong thư viện</span></label><select id="library-deck" aria-describedby="library-switcher-hint">${store.decks.map(d => `<option value="${esc(d.id)}" ${d.id === store.activeDeckId ? 'selected' : ''}>${esc(d.name)} · ${d.kind === 'quiz' ? 'Trắc nghiệm' : 'Từ vựng'}</option>`).join('')}</select></div>${button('upload', icon('plus') + ' Thêm bộ từ', 'small')}<p class="muted switcher-hint" id="library-switcher-hint">Chọn bộ để xem nội dung và thống kê. Tiến độ được lưu riêng cho từng bộ.</p></section>`;
+    }
+    function switchLibraryDeck(id) {
+      if (!store.decks.some(d => d.id === id) || id === store.activeDeckId) return;
+      if (!leaveSession()) return;
+      store.activeDeckId = id; groupId = null; selectedSections = new Set();
+      search = ''; hardFilter = false; setup = null; view = 'library';
+      save('meta'); render(); $('#library-deck').focus();
+    }
+    function renderDecks() { const cards = store.decks.map(d => { const all = visibleCards(d), k = all.filter(c => d.progress[c.id]?.known).length; return `<article class="panel deck-card"><div class="row spread"><span class="chapter-icon">${icon('book')}</span><span class="pill">${d.kind === 'quiz' ? 'Trắc nghiệm mọi môn' : esc(languages[d.language] || d.language)}</span></div><h2>${esc(d.name)}</h2><p class="muted">${all.length} ${d.kind === 'quiz' ? 'câu hỏi' : 'từ'} · ${Core.organize(d).length} nhóm</p><div class="progress-label"><span>${k} ${d.kind === 'quiz' ? 'câu đã nắm vững' : 'từ đã thuộc'}</span><strong>${Math.round(k * 100 / (all.length || 1))}%</strong></div><div class="progress"><i style="width:${k * 100 / (all.length || 1)}%"></i></div><div class="row spread" style="margin-top:20px">${button('open-deck', (d.kind === 'quiz' ? 'Luyện trắc nghiệm ' : 'Mở bộ từ ') + icon('arrow'), 'primary small', `data-id="${d.id}"`)}${button('deck-settings', 'Cài đặt', 'small', `data-id="${d.id}"`)}</div></article>`; }).join(''); $('#main').innerHTML = intro('MỖI NGÀY MỘT CHÚT', 'Học mọi môn, mỗi ngày.', 'Học từ vựng hoặc nhập bộ câu hỏi trắc nghiệm Word/PDF cho mọi môn.', `<div class="row">${button('upload', icon('upload') + ' Thêm bộ từ', 'primary')}${button('upload-quiz', icon('plus') + ' Nhập trắc nghiệm', 'primary')}</div>`) + (store.decks.length ? `<div class="grid">${cards}</div>` : `<div class="empty-hero"><div class="upload-zone" id="drop-zone">${icon('upload')}<h2>Bắt đầu từ tài liệu của bạn</h2><p>Kéo thả file Word (.docx) hoặc PDF vào đây. Tự nhận diện trắc nghiệm, bảng hoặc dòng từ vựng trong Word. Ví dụ: tools: (n) công cụ; hot: nóng &gt;&lt; cold: lạnh (cặp đối nghĩa).</p>${button('upload', 'Chọn file Word / PDF ' + icon('arrow'), 'primary')}<p>Đọc ngay trên trình duyệt · Không gửi file lên mạng</p></div><div class="sample-area"><div class="sample-card"><div class="sample-inner"><small>MỘT THẺ, MỘT KẾT NỐI MỚI</small><strong>木漏れ日</strong><span class="badge">Tiếng Nhật</span><p>Nắng xuyên qua kẽ lá</p><small>Ngôn ngữ nào cũng có một nơi ở đây.</small></div></div></div></div>`) + fileGuide(); }
     function statCards(cards) { return `<div class="stats">${[['cards', cards.length, 'Từ trong bộ'], ['check', known(cards), 'Từ đã thuộc'], ['fire', streak(deck().activity), 'Ngày liên tiếp'], ['star', originalCards(deck()).filter(c => stateOf(c.id).starred).length, 'Từ khó']].map(([i, n, l]) => `<div class="panel stat"><div class="stat-icon">${icon(i)}</div><div><strong>${n}</strong><span>${l}</span></div></div>`).join('')}</div>`; }
-    function renderLibrary() { const d = deck(); $('#main').innerHTML = intro('THƯ VIỆN CỦA BẠN', esc(d.name), `${esc(languages[d.language] || d.language)} · ${d.organization.mode === 'split' ? 'Tách theo chapter' : 'Gộp tất cả vào một bản'}`, button('deck-settings', 'Cài đặt bộ từ', '', `data-id="${d.id}"`)) + statCards(visibleCards(d)) + `<div class="section-head"><h2>Chọn một nhóm để bắt đầu</h2><label class="searchbar">${icon('search')}<input type="search" id="search" value="${esc(search)}" placeholder="Tìm từ hoặc nghĩa trong toàn bộ bộ từ…" aria-label="Tìm kiếm từ vựng"></label></div><div id="library-results"></div>`; renderSearch(); }
+    function renderLibrary() { const d = deck(); $('#main').innerHTML = intro('THƯ VIỆN CỦA BẠN', esc(d.name), `${esc(languages[d.language] || d.language)} · ${d.organization.mode === 'split' ? 'Tách theo chapter' : 'Gộp tất cả vào một bản'}`, button('deck-settings', 'Cài đặt bộ từ', '', `data-id="${d.id}"`)) + statCards(visibleCards(d)) + librarySwitcher() + `<div class="section-head"><h2>Chọn một nhóm để bắt đầu</h2><label class="searchbar">${icon('search')}<input type="search" id="search" value="${esc(search)}" placeholder="Tìm từ hoặc nghĩa trong toàn bộ bộ từ…" aria-label="Tìm kiếm từ vựng"></label></div><div id="library-results"></div>` + fileGuide(); renderSearch(); }
     function wordTable(cards) { if (deck()?.kind === 'quiz') return `<div class="section-list">${cards.map(c => `<article class="panel question-preview"><h3>${esc(c.word)}</h3>${c.options.map((o, i) => `<p class="${i === c.answer ? 'quiz-answer-highlight' : ''}">${'ABCD'[i]}. ${esc(o)}</p>`).join('')}<p><strong class="quiz-answer-highlight">Đáp án: ${'ABCD'[c.answer]}. ${esc(c.meaning)}</strong></p>${c.note ? `<p>Giải thích: ${esc(c.note)}</p>` : ''}${starButton(c.id)}</article>`).join('') || '<p>Chưa có câu hỏi phù hợp.</p>'}</div>`; if (!cards.length) return '<div class="empty-state">Chưa có từ phù hợp.</div>'; return `<div class="table-wrap"><table><thead><tr><th>Từ</th><th>Nghĩa và ghi chú</th><th>Thao tác</th></tr></thead><tbody>${cards.map(c => `<tr><td class="word">${badges(c.pos)} ${esc(c.word)}<small>${esc(c.chapterName || '')} / ${esc(c.sectionName || '')}</small></td><td class="meaning">${esc(c.meaning)}${c.note ? `<small>${esc(c.note)}</small>` : ''}</td><td><div class="row" style="flex-wrap:nowrap">${starButton(c.id)}${speaker(c.id)}</div></td></tr>`).join('')}</tbody></table></div>`; }
     function renderSearch() { const d = deck(), el = $('#library-results'); if (!el) return; if (search.trim()) { const q = Core.normalize(search), cards = originalCards(d).filter(c => Core.normalize(c.word + ' ' + c.meaning + ' ' + c.note).includes(q)); el.innerHTML = `<p class="muted">${cards.length} kết quả trên toàn bộ cấu trúc gốc</p>${wordTable(cards)}`; return; } el.innerHTML = `<div class="grid">${Core.organize(d).map((g, i) => { const cards = Core.unique(Core.flatten([g])); return `<button class="panel chapter-card" data-action="group" data-id="${g.id}"><span class="num">${String(i + 1).padStart(2, '0')}</span><span class="chapter-icon">${icon(/listening/i.test(g.name) ? 'headphones' : 'book')}</span><h3>${esc(g.name)}</h3><p>${cards.length} từ · ${g.sections.length} section</p><div class="progress-label"><span>${known(cards)} / ${cards.length} đã thuộc</span><strong>${percent(cards)}%</strong></div>${meter(cards)}<span class="chapter-bottom"><span>Học theo nhịp của bạn</span>${icon('arrow')}</span></button>`; }).join('')}</div>${voiceNotice()}`; }
     function currentGroup() { return Core.organize(deck()).find(g => g.id === groupId); }
@@ -3116,8 +3210,8 @@
     function renderGroup() { const g = currentGroup(); if (!g) { view = 'library'; render(); return; } $('#main').innerHTML = `<div class="breadcrumb">${button('library', '← Bộ từ', 'small ghost')} / ${esc(g.name)}</div>` + intro('CHỌN NHỊP HỌC CỦA BẠN', esc(g.name), `${Core.unique(Core.flatten([g])).length} từ · ${g.sections.length} section`) + `<div class="study-options"><section><div class="row spread" style="margin-bottom:16px"><h2>Chọn section</h2>${button('select-sections', 'Chọn tất cả / Bỏ chọn', 'small')}</div><div class="section-list">${g.sections.map(s => `<div class="section-item"><input type="checkbox" id="sec-${s.id}" data-section="${s.id}" ${selectedSections.has(s.id) ? 'checked' : ''}><label for="sec-${s.id}"><strong>${esc(s.name)}</strong><small>${Core.unique(s.cards).length} từ · ${known(Core.unique(s.cards))} đã thuộc</small></label>${button('study-section', 'Học', 'small', `data-id="${s.id}"`)}</div>`).join('')}</div></section><aside class="panel launch-panel"><div class="eyebrow">PHIÊN HỌC CỦA BẠN</div><h3 id="selection-count"></h3><label><input type="checkbox" id="hard-filter" ${hardFilter ? 'checked' : ''}> Chỉ học từ ⭐ khó</label>${button('start-flash', 'Bắt đầu flashcard ' + icon('arrow'), 'primary', 'id="start-flash"')}${button('quiz-group', 'Quiz thử thách', '')}<p>Chọn nhiều section hoặc cả nhóm. Tiến độ được lưu sau mỗi lần đánh giá thẻ.</p>${voiceNotice()}</aside></div>`; updateSelection(); }
     function updateSelection() { if ($('#selection-count')) $('#selection-count').textContent = `${groupSelection().length} từ · ${selectedSections.size} section`; if ($('#start-flash')) $('#start-flash').disabled = !groupSelection().length; }
     function renderHard() { const cards = originalCards(deck()).filter(c => stateOf(c.id).starred); $('#main').innerHTML = intro('DÀNH THÊM MỘT CHÚT CHÚ Ý', 'Những từ cần nhớ hơn.', `${cards.length} từ được đánh dấu trong bộ ${esc(deck().name)}.`, button('study-hard', 'Học từ khó', 'primary', cards.length ? '' : 'disabled')) + wordTable(cards); }
-    function renderStats() { const d = deck(), cards = visibleCards(d); $('#main').innerHTML = intro('NHÌN LẠI ĐỂ ĐI XA HƠN', 'Mỗi chút đều đáng kể.', esc(d.name)) + statCards(cards) + `<div class="stats-bottom"><section class="panel"><h2>Tiến độ theo nhóm</h2>${Core.organize(d).map(g => { const a = Core.unique(Core.flatten([g])); return `<div class="chart-row"><span>${esc(g.name)}</span>${meter(a)}<strong>${known(a)}/${a.length} · ${percent(a)}%</strong></div>`; }).join('')}</section><section class="panel"><h2>Nhịp học 7 ngày</h2><div class="week">${Array.from({ length: 7 }, (_, i) => { const date = new Date(); date.setDate(date.getDate() - 6 + i); const done = d.activity.includes(day(date)); return `<div class="day ${done ? 'done' : ''}"><span>${esc(date.toLocaleDateString('vi-VN', { weekday: 'short' }))}</span><i title="${day(date)}">${done ? '✓' : date.getDate()}</i></div>`; }).join('')}</div><p class="muted" style="margin-top:20px">${d.activity.length} ngày đã học. Trả lời ít nhất một câu để ghi nhận ngày học; chuỗi được giữ nếu đã học hôm nay hoặc hôm qua.</p></section></div>`; }
-    function openDialog(html) { $('#dialog').innerHTML = html; if (!$('#dialog').open) $('#dialog').showModal(); }
+    function renderStats() { const d = deck(), cards = visibleCards(d); $('#main').innerHTML = intro('NHÌN LẠI ĐỂ ĐI XA HƠN', 'Mỗi chút đều đáng kể.', esc(d.name)) + statCards(cards) + `<div class="stats-bottom"><section class="panel"><h2>Tiến độ theo nhóm</h2>${Core.organize(d).map(g => { const a = Core.unique(Core.flatten([g])); return `<div class="chart-row"><span>${esc(g.name)}</span>${meter(a)}<strong>${known(a)}/${a.length} · ${percent(a)}%</strong></div>` + fileGuide(); }).join('')}</section><section class="panel"><h2>Nhịp học 7 ngày</h2><div class="week">${Array.from({ length: 7 }, (_, i) => { const date = new Date(); date.setDate(date.getDate() - 6 + i); const done = d.activity.includes(day(date)); return `<div class="day ${done ? 'done' : ''}"><span>${esc(date.toLocaleDateString('vi-VN', { weekday: 'short' }))}</span><i title="${day(date)}">${done ? '✓' : date.getDate()}</i></div>`; }).join('')}</div><p class="muted" style="margin-top:20px">${d.activity.length} ngày đã học. Trả lời ít nhất một câu để ghi nhận ngày học; chuỗi được giữ nếu đã học hôm nay hoặc hôm qua.</p></section></div>`; }
+    function openDialog(html) { $('#dialog').innerHTML = `<div class="dialog-topbar"><button type="button" class="icon-btn dialog-close" data-action="close-dialog" aria-label="Đóng hộp thoại" title="Đóng">×</button></div>` + html; $('#dialog').scrollTop = 0; if (!$('#dialog').open) $('#dialog').showModal(); }
     function closeDialog() { if ($('#dialog').dataset.kind === 'pause') { resumeQuiz(); return; } $('#dialog').close(); $('#dialog').dataset.kind = ''; pending = null; }
     function languageFields(language = 'en-US') { return `<label>Ngôn ngữ cột “Từ”<select id="deck-language">${Object.entries(languages).map(([v, t]) => `<option value="${v}" ${language === v ? 'selected' : ''}>${t}</option>`).join('')}<option value="other" ${!languages[language] ? 'selected' : ''}>Khác (nhập mã giọng)</option></select></label><label id="custom-language-label" ${languages[language] ? 'hidden' : ''}>Mã ngôn ngữ, ví dụ it-IT<input id="custom-language" type="text" maxlength="35" value="${languages[language] ? '' : esc(language)}" placeholder="it-IT"></label>`; }
     function organizationFields(d) { const mode = d.organization?.mode || (d.hasChapters ? 'split' : 'merged'); return `<fieldset><legend>Cách tổ chức bộ từ</legend><label class="radio-option"><input type="radio" name="organization" value="split" ${mode === 'split' ? 'checked' : ''} ${d.hasChapters ? '' : 'disabled'}><span><b>Tách theo chapter</b><small>Mỗi chapter một nhóm, giữ section bên trong.${d.hasChapters ? '' : ' File không có Heading 2 nên tùy chọn này không dùng được.'}</small></span></label><label class="radio-option"><input type="radio" name="organization" value="merged" ${mode === 'merged' ? 'checked' : ''}><span><b>Gộp tất cả vào một bản</b><small>Học toàn bộ thẻ trong một nhóm. Cấu trúc gốc vẫn được giữ.</small></span></label><label class="filter-check"><input type="checkbox" id="dedupe" ${d.organization?.dedupe ? 'checked' : ''} ${mode === 'split' ? 'disabled' : ''}> Loại bỏ từ trùng lặp khi gộp</label><small style="display:block;margin-top:8px">Giữ nghĩa đầu tiên, đưa nghĩa khác vào ghi chú. ID và tiến độ gốc không bị xóa.</small></fieldset>`; }
@@ -3319,7 +3413,18 @@
             let font;
             try { font = page.commonObjs.get(item.fontName); } catch { }
             const boldFont = !!font?.bold || !!font?.black || /bold|black|heavy|demi/i.test(font?.name || '');
-            const inYellow = yellowBoxes.some(b => x >= b.minX - 10 && x <= b.maxX + 10 && y >= b.minY - 8 && y <= b.maxY + 15);
+            // Compare actual text bounds with the highlight, without extending it into adjacent lines.
+            const style = content.styles[item.fontName] || {};
+            const textBottom = y + (Number.isFinite(style.descent) ? style.descent : -.2) * height;
+            const textTop = y + (Number.isFinite(style.ascent) ? style.ascent : .8) * height;
+            const textHeight = Math.max(1, textTop - textBottom);
+            const textWidth = Math.abs(item.width) || height;
+            const inYellow = yellowBoxes.some(b => {
+              const overlapX = Math.min(x + textWidth, b.maxX) - Math.max(x, b.minX);
+              const overlapY = Math.min(textTop, b.maxY) - Math.max(textBottom, b.minY);
+              // A highlighted answer label is sufficient; most of the text height must overlap.
+              return overlapX >= Math.min(textWidth, height) * .3 && overlapY >= textHeight * .5;
+            });
             let isColored = false;
             const matchedColor = coloredItems.find(c => Math.abs(c.x - x) < 30 && Math.abs(c.y - y) < 15);
             if (matchedColor) {
@@ -3413,7 +3518,7 @@
         }
 
         let tableParsed = null;
-        if (tableHtml && tableHtml.includes('<table')) {
+        if (tableHtml) {
           try {
             tableParsed = Core.parse(tableHtml, file.name);
           } catch { }
@@ -3440,7 +3545,7 @@
           pending = { kind: 'import', parsed };
           showPreview();
         } else {
-          throw Error('Tài liệu không có bảng từ vựng hoặc câu hỏi trắc nghiệm A. B. C. D.');
+          throw Error('Tài liệu không có bảng, dòng từ vựng dạng từ: nghĩa hoặc câu hỏi trắc nghiệm A. B. C. D.');
         }
       } catch (e) {
         uploading = false; header();
@@ -3520,7 +3625,7 @@
 
     /* Một điểm vào cho thao tác chạm, chuột và bàn phím. */
     function helpContent() { return `<h2 id="dialog-title">Một góc học của riêng bạn</h2><ol class="help-list"><li><b>Thêm bộ từ:</b> nhập .docx, chọn ngôn ngữ và cách tách/gộp. Heading 2 là chapter, dòng in đậm là section; cột 1 từ, cột 2 nghĩa, các cột tiếp theo là ghi chú. Không có chapter thì tự gộp “Tất cả”.</li><li><b>Flashcard:</b> chọn một hoặc nhiều section, Space để lật, ← chưa thuộc, → đã thuộc. Từ chưa thuộc trở lại sau tối đa 3 thẻ khác, tối đa 2 lượt/vòng. Đảo chiều, xáo trộn và dấu sao đều nằm trên thẻ.</li><li><b>Quiz thử thách:</b> chọn phạm vi và luật chơi. Phím 1–4 chọn đáp án, Enter nộp câu gõ; Q/W/E dùng power-up theo vị trí. Chọn “Không giới hạn” nếu muốn học thư thả. Sang tab khác sẽ tự tạm dừng câu đang chơi.</li><li><b>Điểm:</b> đúng nhận 600–1000 điểm theo thời gian, từ chuỗi 3 được nhân ×1.1, tăng dần tối đa ×1.5. Không giới hạn giờ nhận 1000 điểm cơ bản. Power-up nhân đôi áp dụng sau thưởng chuỗi. Sai hoặc hết giờ nhận 0.</li><li><b>Gõ đáp án:</b> bỏ qua loại từ, hoa/thường và khoảng trắng thừa. Với câu trả lời là từ, có thể nhập một biến thể ngăn bằng “/”. Câu trả lời là nghĩa cần khớp toàn bộ nghĩa.</li><li><b>Tiến độ:</b> quiz chỉ gợi ý đã thuộc sau 2 lần chơi đúng liên tiếp, không tự đánh dấu. Bảng xếp hạng chỉ có bạn và Bot mô phỏng; không có người chơi trực tuyến.</li><li><b>Sao lưu:</b> dùng Xuất tiến độ, rồi Nhập tiến độ trên máy khác. Khôi phục sẽ thay toàn bộ dữ liệu hiện tại sau khi bạn xác nhận.</li></ol><p>Dữ liệu chỉ ở trình duyệt này. Chế độ riêng tư có thể xóa dữ liệu khi đóng cửa sổ, ngay cả khi thao tác lưu tạm thời thành công. Không có cách đáng tin cậy để mọi trình duyệt phát hiện chế độ riêng tư; hãy luôn xuất sao lưu.</p><p>Tài liệu được đọc ngay trên thiết bị. Học dữ liệu đã lưu trong trang đang mở không cần mạng. Giọng đọc phụ thuộc thiết bị. Mã truy cập chỉ là lớp chắn nhẹ, không bảo mật dữ liệu qua máy chủ.</p>`; }
-    function showHelp() { if (view === 'quiz' && quiz && !quiz.answered) { pauseQuiz(); $('#dialog').insertAdjacentHTML('afterbegin', helpContent().replace('id="dialog-title"', '')); return; } if (autoTimer !== null) { clearTimeout(autoTimer); autoTimer = null; } openDialog(helpContent() + `<div class="dialog-actions">${button('close-dialog', 'Đã hiểu', 'primary')}</div>`); }
+    function showHelp() { if (view === 'quiz' && quiz && !quiz.answered) { pauseQuiz(); $('#dialog .dialog-topbar').insertAdjacentHTML('afterend', helpContent().replace('id="dialog-title"', '')); return; } if (autoTimer !== null) { clearTimeout(autoTimer); autoTimer = null; } openDialog(helpContent() + `<div class="dialog-actions">${button('close-dialog', 'Đã hiểu', 'primary')}</div>`); }
     async function unlock(code) { try { if (!crypto.subtle) throw Error('Hãy mở bằng HTTPS hoặc localhost để dùng mã truy cập.'); const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code)); const digest = Array.from(new Uint8Array(bytes), v => v.toString(16).padStart(2, '0')).join(''); if (digest !== ACCESS_HASH) { $('#gate-error').textContent = 'Mã chưa đúng. Bạn hãy thử lại.'; return; } writeStorage(ACCESS_KEY, ACCESS_HASH); unlocked = true; $('#gate').hidden = true; $('#app').hidden = false; $('#access-code').value = ''; render(); if (quotaFailure) openStorage(true); } catch (e) { $('#gate-error').textContent = e.message; } }
     document.addEventListener('click', event => {
       const b = event.target.closest('[data-action]'); if (!b || b.disabled) return; const a = b.dataset.action, id = b.dataset.id; if (a === 'theme') { store.settings.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; theme(); save('meta'); flushStorage(); return; } if (!unlocked) return;
@@ -3571,6 +3676,7 @@
       else if (el.id === 'hard-filter') { hardFilter = el.checked; updateSelection(); }
       else if (el.name === 'organization') $('#dedupe').disabled = el.value === 'split';
       else if (el.id === 'deck-language') $('#custom-language-label').hidden = el.value !== 'other';
+      else if (el.id === 'library-deck') switchLibraryDeck(el.value);
       else if (el.id === 'quiz-deck') { store.activeDeckId = el.value; setup = null; save('meta'); render(); }
       else if (el.dataset.scope || el.id.startsWith('quiz-') && view === 'quiz-setup') { readSetup(); updateQuizSelection(); }
       else if (el.matches('[data-question-answer]')) {

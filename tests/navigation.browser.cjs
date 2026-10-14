@@ -8,6 +8,22 @@ const server=http.createServer((req,res)=>{res.setHeader('Content-Type','text/ht
 try{const page=await browser.newPage(),errors=[];let accept=true,dialogs=0;page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{dialogs++;return accept?d.accept():d.dismiss();});await page.addInitScript(({fixture,hash})=>{if(!localStorage.getItem('la-vocab-v3'))localStorage.setItem('la-vocab-v2',JSON.stringify(fixture));localStorage.setItem('la-access-v2',hash);},{fixture,hash});await page.goto('http://127.0.0.1:'+server.address().port);
 const back=async view=>{await page.evaluate(()=>history.back());await page.waitForFunction(v=>window.document.querySelector('#main')&&globalThis.eval('view')===v,view);};
 const forward=async view=>{await page.evaluate(()=>history.forward());await page.waitForFunction(v=>globalThis.eval('view')===v,view);};
+assert.equal(await page.locator('.file-guide-item').count(),3);
+await page.locator('[data-action="open-deck"][data-id="one"]').click();
+await page.locator('#search').fill('missing word');
+await page.evaluate(()=>{mark(originalCards(deck())[0].id,true);});
+await page.locator('#library-deck').selectOption('two');
+assert.equal(await page.locator('#main h1').innerText(),'two');
+assert.equal(await page.locator('#search').inputValue(),'');
+assert.equal(await page.evaluate(()=>known(originalCards(deck()))),0);
+await back('library');assert.equal(await page.locator('#library-deck').inputValue(),'one');
+assert.equal(await page.evaluate(()=>known(originalCards(deck()))),1);
+await forward('library');assert.equal(await page.locator('#library-deck').inputValue(),'two');
+await page.reload();await page.locator('#nav-deck').click();
+assert.equal(await page.locator('#library-deck').inputValue(),'two');
+for(const width of [390,1280]){await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
+await page.locator('#nav-stats').click();assert.equal(await page.locator('.file-guide-item').count(),3);
+await page.locator('[data-action="decks"]').first().click();
 await page.locator('[data-action="open-deck"][data-id="one"]').click();await page.locator('.chapter-card').click();await back('library');await back('decks');await forward('library');await forward('group');assert.equal(dialogs,0);
 const before=await page.evaluate(()=>history.length);await page.evaluate(()=>{render();render();});assert.equal(await page.evaluate(()=>history.length),before);
 await page.locator('#start-flash').click();const sessionLength=await page.evaluate(()=>history.length);await page.locator('#flashcard').click();await page.locator('[data-action="known"]').click();assert.equal(await page.evaluate(()=>history.length),sessionLength);
