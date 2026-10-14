@@ -15,8 +15,8 @@ la-tien-do-*.json
 private/
 vocab-data*/
 tests/
-scripts/
-package*.json
+# Keep package manifests and scripts/sync-env.cjs available for npm run build.
+scripts/set-access-code.cjs
 README.md
 test-results/
 screenshots/
