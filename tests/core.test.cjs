@@ -8,6 +8,13 @@ const code = html.match(/<script id="core">([\s\S]*?)<\/script>/)[1];
 const C = new Function('DOMParser', code + '\nreturn Core;')(DOMParser);
 let passed = 0;
 function test(name, action) { action(); passed++; console.log('✓ ' + name); }
+test('Script vẫn hợp lệ khi công cụ xem trước chèn mã trước thẻ đóng body', () => {
+  const preview = html.replace(/<\/body>/i, '<script>window.previewReady=true;</script></body>');
+  const scripts = [...preview.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+  assert.equal(scripts.length, 4);
+  for (const [, code] of scripts) assert.doesNotThrow(() => new Function(code));
+  assert.ok(preview.indexOf('window.previewReady') > preview.indexOf('<script id="app-code">'));
+});
 const table = rows => '<table>' + rows.map(r => '<tr>' + r.map(x => '<td>' + x + '</td>').join('') + '</tr>').join('') + '</table>';
 const source = '<h1>Bỏ qua tiêu đề</h1><p>Ngày và ghi chú: không phải lệnh</p><h2>Chapter A</h2><p><strong>Dictation 1</strong></p>' + table([['Từ','Nghĩa','Ghi chú'],['(n)(v) sacrifice','hy sinh','giữ / = &gt;&lt; → (gốc)'],['猫 / ねこ','mèo','日本語'],['안녕','xin chào','한국어'],['你好','chào','中文'],['At most &gt;&lt; at least','nhiều nhất &gt;&lt; ít nhất','']]) + '<h2>Chapter B</h2><p><strong>Dictation 1</strong></p>' + table([['(n) sacrifice','sự hy sinh','nghĩa thứ hai'],['bonjour','xin chào','français']]);
 const parsed = C.parse(source, 'fixture.docx');

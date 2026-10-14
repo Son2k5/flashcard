@@ -56,7 +56,8 @@ const Core = (() => {
     return Array.from(node.childNodes).map(textOf).join('')+(['P','DIV','LI'].includes(node.tagName)?'\n':'');
   }
   function parse(html, fileName='Bộ từ.docx') {
-    const root=new DOMParser().parseFromString('<!doctype html><html><body>'+html+'</body></html>','text/html').body;
+    // Tránh thẻ đóng trang dạng thô bị công cụ xem trước chèn script vào giữa chuỗi JS.
+    const root=new DOMParser().parseFromString('\x3c!doctype html>\x3chtml>\x3cbody>'+html+'\x3c/body>\x3c/html>','text/html').body;
     if(!root.querySelector('table'))throw Error('File không có bảng. Hãy đặt từ, nghĩa và ghi chú vào bảng từ hai cột trở lên.');
     const chapters=[],warnings=[];let chapter=null,section=null,count=0,tableNum=0;
     const hasChapters=!!root.querySelector('h2');
