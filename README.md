@@ -60,15 +60,42 @@ Chọn bộ từ → chapter/section → nguồn tất cả/chưa thuộc/từ k
 - Tạm dừng bằng nút hoặc Escape; chuyển tab tự tạm dừng. Khi thoát có xác nhận. Interval và timeout tự chuyển câu được dọn khi đổi câu/thoát/kết thúc.
 - Kết quả có điểm, hạng bot, đúng/sai, độ chính xác, thời gian TB (không tính tạm dừng), chuỗi dài nhất, kỷ lục cũ/mới và từ sai. Có chơi lại, chỉ câu sai, thêm sao và đánh dấu chưa thuộc.
 - Quiz **không tự ghi đã thuộc**. Đúng hai lần liên tiếp ở hai lượt chơi khác nhau đưa ra gợi ý, chỉ ghi đã thuộc khi bạn bấm chấp nhận.
-- Điểm cao khóa theo bộ và tập chapter/section đã chọn (không phụ thuộc thứ tự). Hiển thị 5 điểm cao nhất và 5 lần gần nhất; giữ tối đa 100 lượt gần nhất cùng top 5. Luật chơi được ghi trong lịch sử vì số câu, thời gian, power-up khác nhau không thể so sánh ngang bằng. Phiên đang dở không lưu điểm cao và không khôi phục sau reload.
+- Điểm cao khóa theo bộ và tập chapter/section đã chọn (không phụ thuộc thứ tự). Hiển thị 5 điểm cao nhất và 5 lần gần nhất; chỉ giữ **20 lượt gần nhất trên toàn bộ mỗi bộ từ**, cộng **top 5 của từng tập chapter/section**, không lưu trùng lượt thuộc cả hai nhóm. Luật chơi được ghi trong lịch sử vì số câu, thời gian, power-up khác nhau không thể so sánh ngang bằng. Phiên đang dở không lưu điểm cao và không khôi phục sau reload.
 
 ## Dữ liệu, phát âm và sao lưu
 
-Mọi truy cập localStorage nằm trong try/catch. Khi lưu trữ bị chặn/đầy, hiện **Tiến độ sẽ không được lưu**; học trong bộ nhớ vẫn được. Không có phương pháp đáng tin cậy phát hiện mọi chế độ riêng tư: luôn có nhắc riêng tư có thể xóa dữ liệu khi đóng cửa sổ.
+Mọi truy cập localStorage được xử lý trong try/catch. Khi lưu trữ bị chặn, hiện **Tiến độ sẽ không được lưu**; học trong bộ nhớ vẫn được. Khi hết dung lượng, ứng dụng giữ thay đổi trong tab, giữ bản lưu trước đó, tự mở **Quản lý dung lượng** và hướng dẫn xuất sao lưu/dọn dẹp/thử lưu lại. Không đóng tab khi còn thay đổi chưa lưu. Không có phương pháp đáng tin cậy phát hiện mọi chế độ riêng tư: luôn có nhắc riêng tư có thể xóa dữ liệu khi đóng cửa sổ.
 
 Mỗi bộ có tiến độ, sao, lịch sử, ngày học riêng. **Không có tài khoản và không đồng bộ**; người dùng dùng cùng profile trình duyệt sẽ nhìn thấy cùng dữ liệu. Đổi máy/trình duyệt/origin (localhost khác URL production, production khác URL preview) cần xuất/nhập.
 
-**Xuất tiến độ** tải JSON chứa đầy đủ các bộ, cấu trúc gốc, cách nhóm, ngôn ngữ, trạng thái, sao, lịch sử và cài đặt giao diện/âm thanh. Không chứa mã truy cập. **Nhập tiến độ** kiểm tra tên ứng dụng, phiên bản 2, cấu trúc và ID rồi hỏi trước khi thay toàn bộ dữ liệu; giới hạn file 30 MB, 100 bộ, 100.000 dòng thẻ. Sao lưu chứa nội dung từ vựng của bạn, hãy giữ riêng và không commit.
+**Xuất tiến độ** tải JSON schema 3 chứa đầy đủ các bộ, cấu trúc gốc, cách nhóm, ngôn ngữ, trạng thái gọn, sao, lịch sử và cài đặt giao diện/âm thanh; gồm cả thay đổi mới nhất chưa ghi được vào localStorage. Không chứa mã truy cập. **Nhập tiến độ** nhận schema 3 và bản sao lưu v2 cũ, kiểm tra cấu trúc/ID rồi hỏi trước khi thay toàn bộ dữ liệu; giới hạn file 30 MB, 100 bộ, 100.000 dòng thẻ. Sao lưu chứa nội dung từ vựng của bạn, hãy giữ riêng và không commit.
+
+### Quản lý dung lượng
+
+Mở **Cài đặt → Quản lý dung lượng**, hoặc nút cùng tên trong cài đặt từng bộ. Bảng hiển thị tên, số thẻ duy nhất, dung lượng đã lưu và ngày học gần nhất. Có thể:
+
+- **Xuất sao lưu:** xuất riêng một bộ, kèm toàn bộ tiến độ/sao/lịch sử của bộ đó. Khi nhập lại, vẫn áp dụng quy tắc thay toàn bộ dữ liệu sau xác nhận; hãy xuất bản toàn bộ hiện tại trước nếu cần.
+- **Xóa tiến độ:** bỏ thuộc/chưa thuộc, sao, ngày học và thông tin gợi ý từ quiz; giữ từ vựng và lịch sử điểm.
+- **Xóa lịch sử quiz:** bỏ tất cả lượt chơi và điểm cao; giữ từ vựng, tiến độ và sao.
+- **Xóa bộ từ:** xóa hẳn nội dung cùng tiến độ/lịch sử của bộ.
+- **Dọn dẹp nhanh:** giới hạn lại lịch sử, xóa tiến độ/gợi ý của thẻ đã không còn tồn tại và khóa dữ liệu bộ mồ côi; hiển thị lượng dung lượng thực đã giảm. Không xóa dữ liệu thuộc ứng dụng khác. Mọi thao tác xóa cần xác nhận, nêu rõ hậu quả và nhắc xuất sao lưu trước.
+
+Ước tính dung lượng bằng `(độ dài khóa + độ dài giá trị) × 2 byte UTF-16`, chỉ đếm khóa của Lá. Thanh dung lượng dùng mốc 5 MB (5 × 1024 × 1024 byte); trên 80% có cảnh báo **Bộ nhớ trình duyệt sắp đầy, hãy xóa bớt hoặc xuất sao lưu**. Ứng dụng cũng gọi `navigator.storage.estimate()` nếu hỗ trợ, nhưng hiển thị kết quả **toàn origin** riêng: con số này không phải hạn mức riêng của localStorage. Không thử ghi đầy bộ nhớ để dò hạn mức. Xem [StorageManager.estimate](https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/estimate) và [giới hạn Web Storage](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria).
+
+### Cấu trúc lưu trữ schema 3
+
+| Khóa | Nội dung |
+| --- | --- |
+| `la-vocab-v3` | `schemaVersion: 3`, danh sách ID bộ, bộ đang chọn và cài đặt |
+| `la-vocab-v3:data:<deckId>` | Một cấu trúc nguồn Chapter → Section → thẻ, tên/ngôn ngữ/cách tổ chức |
+| `la-vocab-v3:progress:<deckId>` | Object `{ cardId: mãSố }`, không có nội dung từ vựng |
+| `la-vocab-v3:stats:<deckId>` | Ngày học, dữ liệu gợi ý quiz và lịch sử đã giới hạn |
+
+Mã số: `0` = chưa học (được lược bỏ khỏi object), `1` = chưa thuộc, `2` = đã thuộc, `3` = sao/chưa học, `4` = sao/chưa thuộc, `5` = sao/đã thuộc. Hai mã bổ sung giữ được dấu sao độc lập với mức độ thuộc. Bỏ sao không làm mất trạng thái học.
+
+Chỉ lưu văn bản đã parse, không lưu file Word, binary, base64 hoặc HTML chuyển đổi. Nhóm gộp luôn tính từ cấu trúc nguồn, không có bản sao gộp lưu riêng. Tiến độ chỉ ghi khóa của bộ thay đổi; lật thẻ không tạo ghi. Debounce 500 ms gộp các thay đổi liên tiếp, bỏ qua giá trị không đổi; `visibilitychange` khi tab ẩn và `pagehide` sẽ flush đồng bộ ngay.
+
+Lần mở đầu tự chuyển dữ liệu monolithic v2 (hoặc v1 đời đầu) sang schema 3, giữ ID/tiến độ/sao và cấu trúc nguồn. Ghi các khóa mới trước, danh mục sau; chỉ bỏ bản cũ khi cả đợt ghi thành công. Đợt ghi lỗi được hoàn tác và còn nằm trong hàng chờ. Nếu không đủ chỗ cho giai đoạn chuyển đổi, bản cũ còn nguyên; hãy xuất sao lưu, dọn bớt rồi **Thử lưu lại**. Hạn mức lịch sử mới được áp dụng khi chuyển đổi và sau mỗi ván quiz.
 
 Giọng đọc chọn đúng mã ngôn ngữ hoặc cùng họ ngôn ngữ từ danh sách giọng thiết bị; không có giọng thì ẩn loa và thông báo nhẹ. Bỏ tiền tố loại từ khi đọc. Giọng có thể cần mạng tùy hệ điều hành; âm thanh quiz được tổng hợp bằng Web Audio, không tải file. Đã kiểm tra gọi API/chọn ngôn ngữ, chưa xác nhận chất lượng âm thanh thực tế trên từng thiết bị.
 
@@ -97,7 +124,11 @@ npm ci --ignore-scripts
 npm test
 ```
 
-16 nhóm test kiểm tra parse, mặc định Tất cả, bảng nhiều cột, Unicode, section trùng, ID, tách/gộp giữ tiến độ, loại trùng, kế thừa tiến độ, đáp án nhiễu, bộ ba thẻ, điểm/streak, gõ biến thể, phạm vi quiz, bot và kiểm tra backup. Fixture trong test là văn bản giả, không phải dữ liệu của người dùng.
+`npm test` chạy 28 nhóm test: 16 nhóm chức năng cũ và 12 nhóm lưu trữ mới. Bao gồm di chuyển v1/v2, giữ trạng thái thuộc cùng sao, schema 3 và backup, một cấu trúc nguồn, giới hạn lịch sử trên nhiều phạm vi, byte UTF-16, debounce/flush, QuotaExceededError giả lập, rollback khi chuyển đổi thiếu chỗ và dọn dữ liệu mồ côi. Fixture trong test là văn bản giả, không phải dữ liệu của người dùng.
+
+`tests/storage.browser.cjs` là kiểm tra trình duyệt tùy chọn, dùng Playwright đã cài sẵn (hoặc biến `PLAYWRIGHT_MODULE` trỏ tới module), có thể đặt `CHROME_PATH` tới Chrome trên máy. Script tự mở server chỉ tại loopback, dùng CSP trong `vercel.json`, tạo profile test riêng rồi tự đóng browser/server. Không cần dependency này để chạy ứng dụng hoặc `npm test`.
+
+Đợt kiểm tra lưu trữ mới đã chạy trên Chrome: migration thực bằng localStorage, xác nhận hủy/xóa riêng từng phần, xuất riêng bộ, backup cũ, ghi gộp không ghi lại từ vựng, giả lập hết dung lượng tự mở quản lý, khôi phục hàng chờ, giữ bản v2 khi migration thất bại, flush khi pagehide, reload, tạm dừng/tiếp tục quiz, cảnh báo 80%, bố cục 390 px và dark mode.
 
 Đã kiểm tra tự động trên Chrome bằng static server `npx serve` có CSP tương ứng cấu hình deploy: nhập file mẫu 11 chapter/27 section/609 dòng; flashcard; tách/gộp; nhiều bộ và kế thừa; quiz một/nhiều chapter; trắc nghiệm/gõ; hết giờ; pause; bốn power-up; bot; kết quả và sao; JSON export/import; reload; cổng mã; localStorage bị chặn; layout 390 px và dark mode. File Word thật, fixture `.docx`, bản sao lưu test và ảnh chụp đều nằm ngoài repo.
 

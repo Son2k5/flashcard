@@ -3,6 +3,6 @@
   "version": "2.0.0",
   "private": true,
   "description": "Ứng dụng từ vựng tĩnh, không cần build. Dependency chỉ dùng cho test Node.",
-  "scripts": {"test": "node tests/core.test.cjs"},
+  "scripts": {"test": "node tests/core.test.cjs && node tests/storage.test.cjs"},
   "devDependencies": {"linkedom": "0.18.12"}
 }
