@@ -3,6 +3,16 @@
   "version": "2.0.0",
   "private": true,
   "description": "Ứng dụng từ vựng tĩnh, không cần build. Dependency chỉ dùng cho test Node.",
-  "scripts": {"test": "node tests/core.test.cjs && node tests/storage.test.cjs"},
-  "devDependencies": {"linkedom": "0.18.12"}
+  "scripts": {
+    "test": "node tests/core.test.cjs && node tests/storage.test.cjs && node tests/quiz-import.test.cjs",
+    "test:quiz-browser": "node tests/quiz-import.browser.cjs"
+  },
+  "devDependencies": {
+    "jszip": "^3.10.1",
+    "linkedom": "0.18.12",
+    "mammoth": "^1.13.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "6.4.299",
+    "playwright": "^1.64.0"
+  }
 }
