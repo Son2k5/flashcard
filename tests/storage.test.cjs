@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const {DOMParser}=require('linkedom');
-const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const html=require('./helpers/app.cjs').readAppHtml();
 const coreCode=html.match(/<script id="core">([\s\S]*?)<\/script>/)[1];
 const storageCode=html.match(/<script id="storage-core">([\s\S]*?)<\/script>/)[1];
 const {Core:C,StorageModel:S}=new Function('DOMParser',coreCode+'\n'+storageCode+'\nreturn {Core,StorageModel};')(DOMParser);

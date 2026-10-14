@@ -1,0 +1,926 @@
+/* Responsive overrides, loaded after component styles. */
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stats {
+    gap: 10px;
+  }
+
+  .stat {
+    padding: 15px;
+    gap: 9px;
+  }
+
+  .stat-icon {
+    width: 34px;
+    height: 36px;
+  }
+
+  .stat strong {
+    font-size: 24px;
+  }
+
+  .study-options {
+    grid-template-columns: 1fr 260px;
+  }
+
+  .header {
+    gap: 14px;
+  }
+
+  .empty-hero {
+    gap: 20px;
+  }
+
+  .stats-bottom {
+    grid-template-columns: 1fr;
+  }
+
+  .section-item .progress {
+    display: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .shell {
+    padding: 0 18px;
+  }
+
+  .header {
+    flex-wrap: wrap;
+    padding-top: 15px;
+    padding-bottom: 10px;
+    gap: 8px;
+  }
+
+  .brand {
+    margin-right: auto;
+  }
+
+  .brand small {
+    font-size: 9px;
+  }
+
+  .header-sep {
+    display: none;
+  }
+
+  .header > .nav {
+    order: 5;
+    width: 100%;
+    margin: 5px 0 0;
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+  }
+
+  .nav button {
+    flex: 1;
+    padding: 9px 6px;
+    font-size: 12px;
+  }
+
+  .header .upload-header {
+    font-size: 0;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+  }
+
+  .header .upload-header svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .intro {
+    margin: 28px 0 23px;
+    align-items: start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .intro p {
+    font-size: 14px;
+  }
+
+  .intro .pill {
+    font-size: 11px;
+  }
+
+  .stats {
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 26px;
+  }
+
+  .stat {
+    padding: 15px;
+  }
+
+  .stat span {
+    font-size: 11px;
+  }
+
+  .grid {
+    gap: 12px;
+  }
+
+  .chapter-card {
+    padding: 18px;
+  }
+
+  .chapter-card .num {
+    top: 21px;
+    right: 18px;
+  }
+
+  .chapter-card h3 {
+    font-size: 18px;
+  }
+
+  .chapter-card p {
+    font-size: 11px;
+  }
+
+  .chapter-icon {
+    width: 39px;
+    height: 39px;
+    margin-bottom: 17px;
+  }
+
+  .chapter-bottom {
+    font-size: 10px;
+  }
+
+  .progress-label {
+    font-size: 10px;
+    margin-top: 20px;
+  }
+
+  .section-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .searchbar {
+    max-width: none;
+  }
+
+  .empty-hero {
+    display: flex;
+    flex-direction: column;
+    margin-top: 32px;
+    gap: 8px;
+  }
+
+  .empty-hero h1 {
+    font-size: 42px;
+  }
+
+  .empty-hero p {
+    font-size: 14px;
+  }
+
+  .sample-area {
+    min-height: 300px;
+    width: 100%;
+    margin-top: 15px;
+  }
+
+  .sample-card {
+    min-height: 245px;
+    max-width: 310px;
+  }
+
+  .sample-card strong {
+    font-size: 32px;
+  }
+
+  .sample-tag {
+    bottom: 0;
+    right: 10px;
+  }
+
+  .steps {
+    gap: 18px;
+    grid-template-columns: 1fr;
+  }
+
+  .steps h3 {
+    display: inline;
+    margin-left: 10px;
+  }
+
+  .steps p {
+    margin-top: 6px;
+  }
+
+  .study-options {
+    grid-template-columns: 1fr;
+  }
+
+  .launch-panel {
+    position: static;
+    order: -1;
+    padding: 20px;
+  }
+
+  .launch-panel h3 {
+    font-size: 16px;
+  }
+
+  .launch-panel .btn {
+    margin-top: 8px;
+  }
+
+  .section-item {
+    padding: 15px 13px;
+    gap: 10px;
+  }
+
+  .section-item label strong {
+    font-size: 13px;
+  }
+
+  .section-item .btn {
+    padding: 8px 10px;
+  }
+
+  .study-shell {
+    margin-top: 18px;
+  }
+
+  .study-top h2 {
+    font-size: 14px;
+  }
+
+  .tools-row {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .tools-row .btn {
+    padding: 9px 11px;
+  }
+
+  .card-face {
+    padding: 28px 19px;
+    min-height: 315px;
+  }
+
+  .flashcard {
+    min-height: 315px;
+  }
+
+  .rating-row {
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .rating-row .btn {
+    font-size: 13px;
+  }
+
+  .key-hint {
+    font-size: 10px;
+  }
+
+  .quiz-panel {
+    padding: 21px 17px;
+  }
+
+  .answers {
+    grid-template-columns: 1fr;
+  }
+
+  .answer {
+    min-height: 58px;
+    padding: 14px;
+  }
+
+  .chart-row {
+    grid-template-columns: 95px 1fr 62px;
+    gap: 12px;
+    font-size: 12px;
+  }
+
+  .chart-row strong {
+    font-size: 10px;
+  }
+
+  .panel {
+    border-radius: 16px;
+  }
+
+  .result-numbers {
+    gap: 30px;
+  }
+
+  .footer {
+    margin-top: 30px;
+    font-size: 11px;
+  }
+
+  .footer .row {
+    gap: 14px;
+  }
+
+  dialog {
+    padding: 21px;
+  }
+
+  dialog .stat strong {
+    font-size: 23px;
+  }
+
+  .dialog-actions .btn {
+    flex: 1;
+    font-size: 13px;
+  }
+
+  td,
+  th {
+    padding: 11px 12px;
+  }
+
+  .week {
+    gap: 5px;
+  }
+
+  .day i {
+    width: 31px;
+    height: 33px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *:before,
+  *:after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 1000px) {
+  .header {
+    gap: 10px;
+  }
+
+  .header .nav button {
+    padding: 10px 7px;
+    font-size: 12px;
+  }
+
+  .brand small {
+    max-width: 140px;
+  }
+
+  .quiz-game-grid,
+  .quiz-result-grid {
+    grid-template-columns: minmax(0, 1fr) 230px;
+  }
+
+  .game-answers {
+    grid-template-columns: 1fr;
+  }
+
+  .quiz-setup {
+    gap: 15px;
+  }
+}
+
+@media (max-width: 760px) {
+  .header .nav {
+    order: 5;
+    width: 100%;
+    justify-content: space-between;
+    margin: 0;
+  }
+
+  .header {
+    flex-wrap: wrap;
+    padding: 14px 0;
+  }
+
+  .brand {
+    margin-right: auto;
+  }
+
+  .header-sep {
+    display: none;
+  }
+
+  .quiz-setup,
+  .quiz-game-grid,
+  .quiz-result-grid,
+  .history-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .scope-list {
+    max-height: 350px;
+  }
+
+  .leaderboard ol {
+    margin-top: 8px;
+  }
+
+  .leaderboard {
+    padding: 17px;
+  }
+
+  .game-answers {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .backup-bar .row {
+    gap: 8px;
+  }
+
+  .quiz-toolbar > .row {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .quiz-toolbar .btn {
+    min-height: 44px;
+  }
+
+  .quiz-play {
+    margin-top: 22px;
+  }
+
+  .game-hud {
+    gap: 9px;
+  }
+
+  .game-hud > div {
+    padding: 12px 14px;
+  }
+
+  .game-hud strong {
+    font-size: 24px;
+  }
+
+  .game-hud small {
+    font-size: 9px;
+    letter-spacing: 0.8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header .nav button {
+    font-size: 11px;
+    padding: 9px 5px;
+  }
+
+  .brand small {
+    max-width: 175px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .deck-card {
+    grid-column: 1/-1;
+  }
+
+  .quiz-setup .panel {
+    padding: 19px;
+  }
+
+  .game-answers {
+    grid-template-columns: 1fr;
+  }
+
+  .game-answers .answer {
+    min-height: 64px;
+  }
+
+  .form-grid {
+    gap: 12px;
+  }
+
+  .form-grid select {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .toggle-grid {
+    gap: 14px 6px;
+  }
+
+  .toggle-label {
+    font-size: 12px;
+  }
+
+  .gate-card {
+    padding: 27px;
+  }
+
+  .gate-card h1 {
+    font-size: 32px;
+  }
+
+  .power-tray {
+    padding: 16px;
+  }
+
+  .power-tray .row {
+    gap: 8px;
+  }
+
+  .power-button {
+    padding: 10px;
+    font-size: 11px;
+    min-height: 44px;
+  }
+
+  .result-metrics {
+    gap: 17px;
+  }
+
+  .big-score {
+    font-size: 52px;
+  }
+
+  .backup-bar > .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .btn.small {
+    min-height: 44px;
+  }
+
+  .intro h1 {
+    font-size: 32px;
+  }
+
+  .quiz-toolbar .btn {
+    font-size: 11px;
+  }
+
+  .quiz-panel {
+    padding: 20px 15px;
+  }
+
+  .game-hud > div {
+    padding: 10px;
+  }
+
+  .game-hud strong {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 620px) {
+  .storage-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .storage-summary .stat {
+    padding: 18px;
+  }
+
+  .storage-summary strong {
+    font-size: 25px;
+  }
+
+  .storage-meter {
+    margin-top: -10px;
+  }
+}
+
+@media (max-width: 700px) {
+  .file-guide-grid {
+    grid-template-columns: 1fr;
+  }
+  .library-switcher {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 20px;
+  }
+  .library-switcher > .btn {
+    width: 100%;
+  }
+}
+
+/* Compact header: reveal navigation only when the hamburger is opened. */
+@media (max-width: 1100px) {
+  .header {
+    gap: 12px;
+    padding-top: 14px;
+    padding-bottom: 12px;
+  }
+  .brand {
+    margin-right: auto;
+  }
+  .header .nav-toggle {
+    display: inline-flex;
+    order: 4;
+    flex-shrink: 0;
+    border: 1px solid var(--line);
+  }
+  .header > .nav {
+    order: 5;
+    flex: 0 0 100%;
+    margin: 0;
+    width: 100%;
+    display: none;
+    grid-template-columns: minmax(0, 1fr);
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+    gap: 4px;
+  }
+  .header.navigation-open > .nav {
+    display: grid;
+  }
+  .header .nav button {
+    min-height: 44px;
+    padding: 10px 6px;
+    font-size: 13px;
+    text-align: left;
+  }
+  .intro {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .shell {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .storage-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .quiz-setup,
+  .quiz-game-grid,
+  .quiz-result-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .study-options {
+    grid-template-columns: minmax(0, 1fr) 240px;
+  }
+  .game-answers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .file-guide-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .section-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .searchbar {
+    max-width: none;
+  }
+}
+
+/* Phone: one content column, readable forms and comfortable touch targets. */
+@media (max-width: 620px) {
+  .shell {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .header .nav button {
+    font-size: 12px;
+    padding: 8px 3px;
+  }
+  .header .upload-header {
+    font-size: 0;
+    padding: 10px;
+    gap: 0;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+  }
+  .grid,
+  .study-options,
+  .game-answers,
+  .storage-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .launch-panel {
+    position: static;
+  }
+  .intro > .row,
+  .intro > div > .row {
+    width: 100%;
+  }
+  .intro .row > .btn {
+    flex: 1 1 160px;
+  }
+  .study-top,
+  .quiz-navigation {
+    flex-wrap: wrap;
+  }
+  .study-top > .row {
+    width: 100%;
+  }
+  .study-top > .btn {
+    margin-left: auto;
+  }
+  .library-switcher label {
+    flex-wrap: wrap;
+  }
+  .btn.small,
+  .footer button,
+  .preview-chapter summary {
+    min-height: 44px;
+  }
+  .footer .row {
+    gap: 8px 16px;
+  }
+  .card-face {
+    min-height: 280px;
+    padding: 24px 18px;
+  }
+  .flashcard {
+    min-height: 280px;
+  }
+  .game-hud {
+    gap: 8px;
+  }
+  .game-hud > div {
+    padding: 10px 8px;
+  }
+  .game-hud strong {
+    font-size: 22px;
+  }
+  .game-hud small {
+    letter-spacing: 0;
+  }
+  .week {
+    gap: 3px;
+  }
+  .day i {
+    width: 28px;
+    height: 32px;
+  }
+  .chart-row {
+    grid-template-columns: 80px minmax(0, 1fr) 56px;
+    gap: 8px;
+  }
+  .gate {
+    padding: 16px;
+  }
+  .gate-card {
+    padding: 24px;
+  }
+  dialog {
+    width: calc(100% - 24px);
+    padding: 16px;
+  }
+  dialog .stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dialog-actions .btn {
+    flex: 1 1 140px;
+  }
+  .result-numbers {
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .toast {
+    bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .footer {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Storage rows become cards so every action stays visible without swiping. */
+@media (max-width: 900px) {
+  .storage-section-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .storage-toolbar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .storage-toolbar .btn {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+  .storage-table {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+  }
+  .storage-table table,
+  .storage-table tbody {
+    display: block;
+  }
+  .storage-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .storage-table tbody {
+    display: grid;
+    gap: 16px;
+  }
+  .storage-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px 16px;
+    padding: 20px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+  .storage-table tbody td {
+    display: block;
+    min-width: 0;
+    max-width: none;
+    padding: 0;
+    border: 0;
+    overflow-wrap: anywhere;
+  }
+  .storage-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .storage-deck-name,
+  .storage-deck-actions {
+    grid-column: 1 / -1;
+  }
+  .storage-deck-name strong {
+    font-size: 17px;
+    line-height: 1.5;
+  }
+  .storage-table .storage-deck-actions {
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .storage-actions {
+    min-width: 0;
+    gap: 10px;
+  }
+  .storage-actions .btn {
+    min-width: 0;
+    padding: 10px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .storage-table tbody tr {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 16px;
+  }
+  .storage-last-study {
+    grid-column: 1 / -1;
+  }
+  .storage-toolbar {
+    gap: 8px;
+  }
+  .storage-toolbar .btn {
+    font-size: 12px;
+  }
+}
+
+/* Avoid automatic form zoom on iOS; include tablets with touch input. */
+@media (pointer: coarse), (max-width: 900px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea,
+  .form-grid select,
+  .launch-panel select,
+  .gate-card input {
+    font-size: 16px;
+  }
+  .toggle-label,
+  .radio-option {
+    min-height: 44px;
+  }
+  .key-hint,
+  .game-answers .answer > kbd {
+    display: none;
+  }
+}

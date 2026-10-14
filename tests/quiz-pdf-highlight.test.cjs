@@ -6,11 +6,11 @@ const { DOMParser } = require('linkedom');
 
 (async () => {
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+  const html = require('./helpers/app.cjs').readAppHtml();
   const start = html.indexOf('    async function readQuizPDF(file)');
   const end = html.indexOf('\n    async function ', start + 10);
   // Use the production importer with the Node PDF.js worker configuration.
-  const source = html.slice(start, end).replace("pdfjs.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.min.mjs';", '');
+  const source = html.slice(start, end).replace(/pdfjs\.GlobalWorkerOptions\.workerSrc\s*=\s*['"]\.\/vendor\/pdf.worker.min.mjs['"];?/, '');
   const readPDF = new Function('loadPdfJs', source + ';return readQuizPDF;')(async () => pdfjs);
   const Core = new Function('DOMParser', html.match(/<script id="core">([\s\S]*?)<\/script>/)[1] + ';return Core;')(DOMParser);
   const doc = await PDFDocument.create();

@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const http=require('node:http');
 const {DOMParser}=require('linkedom');
-const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const root=path.join(__dirname,'..'),html=require('./helpers/app.cjs').readAppHtml();
 const Core=new Function('DOMParser',html.match(/<script id="core">([\s\S]*?)<\/script>/)[1]+';return Core;')(DOMParser);
 const hash=html.match(/const ACCESS_HASH='([a-f0-9]+)'/)[1];
 const parsed=Core.parse('<h2>Nhóm A</h2><p><strong>Section</strong></p><table>'+Array.from({length:6},(_,i)=>`<tr><td>(n) word ${i}</td><td>nghĩa ${i}</td><td>ghi chú 日本語</td></tr>`).join('')+'</table>','test.docx');

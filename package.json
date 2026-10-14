@@ -8,7 +8,8 @@
     "sync-env": "node scripts/sync-env.cjs",
     "set-access-code": "node scripts/set-access-code.cjs",
     "test": "node tests/core.test.cjs && node tests/storage.test.cjs && node tests/quiz-import.test.cjs && node tests/quiz-pdf-highlight.test.cjs",
-    "test:quiz-browser": "node tests/quiz-import.browser.cjs"
+    "test:quiz-browser": "node tests/quiz-import.browser.cjs",
+    "test:responsive": "node tests/responsive.browser.cjs"
   },
   "devDependencies": {
     "jszip": "^3.10.1",

@@ -37,8 +37,8 @@
 
 Ứng dụng được thiết kế theo triết lý **tinh gọn, độc lập và tối ưu tốc độ**:
 
-- **Kiến trúc Single File**:
-  - Toàn bộ giao diện, hiệu ứng và logic ứng dụng nằm trọn vẹn trong file [`index.html`](index.html).
+- **HTML, CSS và JavaScript tách riêng**:
+  - [`index.html`](index.html) chứa khung giao diện; `assets/css/` chứa kiểu dáng và responsive; `assets/js/` chứa xử lý dữ liệu, lưu trữ và điều khiển giao diện.
   - Không dùng frontend framework (No React/Vue/Angular), không cần build tool/bundler (No Webpack/Vite).
 - **Thư viện xử lý tài liệu (Local Vendor)**:
   - **Mammoth.js (v1.13.0)**: Trích xuất nội dung từ file Word (`.docx`).
@@ -121,10 +121,24 @@ Bạn có thể host ứng dụng trên bất kỳ nền tảng tĩnh nào (Verc
 ## 📁 Cấu trúc thư mục
 
 ```text
-├── index.html        # Toàn bộ ứng dụng (HTML, CSS, JS)
+├── index.html        # Khung HTML và thứ tự nạp tài nguyên
+├── assets/
+│   ├── css/
+│   │   ├── styles.css      # Theme, thành phần giao diện dùng chung
+│   │   └── responsive.css  # Bố cục điện thoại, tablet và thao tác chạm
+│   └── js/
+│       ├── core.js         # Parse tài liệu, xử lý thẻ và tính điểm
+│       ├── storage.js      # Schema, migration và lưu tiến độ
+│       └── app.js          # Điều hướng, render, nhập file và sự kiện
 ├── vendor/           # Thư viện đọc Word/PDF đóng gói sẵn (Mammoth, PDF.js)
 ├── scripts/          # Script tiện ích (đổi mã truy cập)
 ├── tests/            # Bộ unit test & browser test
 ├── package.json      # Khai báo dependency cho môi trường test
 └── vercel.json       # Cấu hình header bảo mật & CSP cho Vercel
 ```
+
+Các script nạp theo thứ tự `core.js` → `storage.js` → `app.js`, dùng script thường để giữ cách chạy website tĩnh. Khi triển khai, cần đưa cả `assets/` và `vendor/` lên cùng `index.html`. Công cụ đổi mã và đồng bộ `.env` cập nhật cấu hình tại `assets/js/app.js`.
+
+Responsive: thanh điều hướng tách hàng ở 1100px; bố cục quiz chuyển một cột ở 900px; màn hình đến 620px dùng một cột thẻ và biểu mẫu. Bảng dữ liệu cuộn bên trong khung, hộp thoại giới hạn theo chiều cao màn hình. Ô nhập trên thiết bị cảm ứng dùng cỡ chữ tối thiểu 16px.
+
+Chạy `npm test` để kiểm tra logic; `npm run test:responsive` để kiểm tra giao diện ở chín kích thước từ 320px đến 1440px, gồm điện thoại nằm ngang và iPad dọc/ngang. Browser test dùng Chrome tại đường dẫn mặc định trên Windows, hoặc biến `CHROME_PATH`. Ảnh kiểm tra lưu tại `screenshots/` (không đưa vào Git).

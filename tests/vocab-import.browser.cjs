@@ -5,11 +5,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
 const root = path.join(__dirname, '..');
-const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const html = require('./helpers/app.cjs').readAppHtml();
 const hash = html.match(/const ACCESS_HASH='([a-f0-9]+)'/)[1];
 const server = http.createServer((req, res) => {
-  const file = req.url.startsWith('/vendor/') ? path.join(root, req.url) : path.join(root, 'index.html');
-  res.setHeader('Content-Type', /\.m?js$/.test(file) ? 'text/javascript' : 'text/html; charset=utf-8');
+  const file = (/^\/(vendor|assets)\//.test(req.url)) ? path.join(root, req.url) : path.join(root, 'index.html');
+  res.setHeader('Content-Type', /\.m?js$/.test(file) ? 'text/javascript' : /\.css$/.test(file) ? 'text/css' : 'text/html; charset=utf-8');
   res.end(fs.readFileSync(file));
 });
 (async () => {

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { DOMParser } = require('linkedom');
-const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+const html = require('./helpers/app.cjs').readAppHtml();
 const code = html.match(/<script id="core">([\s\S]*?)<\/script>/)[1];
 const C = new Function('DOMParser', code + '\nreturn Core;')(DOMParser);
 let passed = 0;

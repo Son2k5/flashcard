@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),{DOMParser}=require('linkedom');
-const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
+const html=require('./helpers/app.cjs').readAppHtml();
 const Core=new Function('DOMParser',html.match(/<script id="core">([\s\S]*?)<\/script>/)[1]+';return Core;')(DOMParser);
 const Storage=new Function('Core',html.match(/<script id="storage-core">([\s\S]*?)<\/script>/)[1]+';return StorageModel;')(Core);
 const parse=s=>Core.parseQuestions(Core.quizLines(s),'Toán.docx');

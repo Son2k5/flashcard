@@ -2,15 +2,15 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const file = path.join(__dirname, '../index.html');
+const file = path.join(__dirname, '../assets/js/app.js');
 function update(code) {
   if (code.length < 8 || code.length > 200) throw Error('Mã cần từ 8 đến 200 ký tự.');
   const html = fs.readFileSync(file, 'utf8');
   const pattern = /const ACCESS_HASH='[a-f0-9]{64}';/;
-  if (!pattern.test(html)) throw Error('Không tìm thấy ACCESS_HASH trong index.html.');
+  if (!pattern.test(html)) throw Error('Không tìm thấy ACCESS_HASH trong assets/js/app.js.');
   const hash = crypto.createHash('sha256').update(code, 'utf8').digest('hex');
   fs.writeFileSync(file, html.replace(pattern, `const ACCESS_HASH='${hash}';`), 'utf8');
-  console.log('\n✔ Đã cập nhật ACCESS_HASH vào index.html.');
+  console.log('\n✔ Đã cập nhật ACCESS_HASH vào assets/js/app.js.');
   console.log(`📌 Mã SHA-256 để lưu vào file .env (ACCESS_HASH):`);
   console.log(`ACCESS_HASH=${hash}`);
   console.log('\nLưu ý: Không commit mã thô vào Git. Hãy cập nhật vào file .env hoặc biến môi trường Vercel.');

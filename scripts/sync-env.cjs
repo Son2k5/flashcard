@@ -1,5 +1,5 @@
 /**
- * Đồng bộ cấu hình từ file .env hoặc biến môi trường process.env vào index.html
+ * Đồng bộ cấu hình từ file .env hoặc biến môi trường process.env vào assets/js/app.js
  * Hỗ trợ chạy khi build (Vercel / CI) hoặc chạy cục bộ khi thay đổi .env.
  */
 const fs = require('node:fs');
@@ -8,7 +8,7 @@ const crypto = require('node:crypto');
 
 const rootDir = path.join(__dirname, '..');
 const envPath = path.join(rootDir, '.env');
-const htmlPath = path.join(rootDir, 'index.html');
+const appPath = path.join(rootDir, 'assets/js/app.js');
 
 function parseEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -49,12 +49,12 @@ function sync() {
     console.log('[sync-env] Đã tự động tạo SHA-256 ACCESS_HASH từ ACCESS_CODE.');
   }
 
-  if (!fs.existsSync(htmlPath)) {
-    console.error('[sync-env] Lỗi: Không tìm thấy index.html');
+  if (!fs.existsSync(appPath)) {
+    console.error('[sync-env] Lỗi: Không tìm thấy assets/js/app.js');
     process.exit(1);
   }
 
-  let html = fs.readFileSync(htmlPath, 'utf8');
+  let source = fs.readFileSync(appPath, 'utf8');
   let changed = false;
 
   if (accessHash) {
@@ -64,30 +64,30 @@ function sync() {
       process.exit(1);
     }
     const hashPattern = /const ACCESS_HASH='[a-f0-9]{64}';/;
-    if (hashPattern.test(html)) {
-      const currentHash = html.match(hashPattern)[0];
+    if (hashPattern.test(source)) {
+      const currentHash = source.match(hashPattern)[0];
       const targetStatement = `const ACCESS_HASH='${cleanHash}';`;
       if (currentHash !== targetStatement) {
-        html = html.replace(hashPattern, targetStatement);
-        console.log(`[sync-env] ✔ Đã cập nhật ACCESS_HASH (${cleanHash.slice(0, 8)}...) vào index.html.`);
+        source = source.replace(hashPattern, targetStatement);
+        console.log(`[sync-env] ✔ Đã cập nhật ACCESS_HASH (${cleanHash.slice(0, 8)}...) vào assets/js/app.js.`);
         changed = true;
       } else {
-        console.log('[sync-env] ℹ ACCESS_HASH trong index.html đã trùng khớp với cấu hình.');
+        console.log('[sync-env] ℹ ACCESS_HASH trong assets/js/app.js đã trùng khớp với cấu hình.');
       }
     } else {
-      console.warn('[sync-env] ⚠ Không tìm thấy khai báo `const ACCESS_HASH=...` trong index.html để thay thế.');
+      console.warn('[sync-env] ⚠ Không tìm thấy khai báo `const ACCESS_HASH=...` trong assets/js/app.js để thay thế.');
     }
   } else {
     console.log('[sync-env] ℹ Không có ACCESS_HASH hay ACCESS_CODE mới trong môi trường/.env. Giữ nguyên hash hiện tại.');
   }
 
   if (accessKey) {
-    const keyPattern = /ACCESS_KEY\s*=\s*'[^']+';?/;
-    if (keyPattern.test(html)) {
-      const current = html.match(keyPattern)[0];
-      const target = `ACCESS_KEY = '${accessKey}';`;
+    const keyPattern = /ACCESS_KEY\s*=\s*(['"])[^'"]+\1;?/;
+    if (keyPattern.test(source)) {
+      const current = source.match(keyPattern)[0];
+      const target = `ACCESS_KEY = ${JSON.stringify(accessKey)};`;
       if (!current.includes(accessKey)) {
-        html = html.replace(keyPattern, target);
+        source = source.replace(keyPattern, target);
         console.log(`[sync-env] ✔ Đã cập nhật ACCESS_KEY='${accessKey}'.`);
         changed = true;
       }
@@ -100,8 +100,8 @@ function sync() {
   }
 
   if (changed) {
-    fs.writeFileSync(htmlPath, html, 'utf8');
-    console.log('[sync-env] 🎉 Đã lưu cập nhật cấu hình vào index.html thành công!');
+    fs.writeFileSync(appPath, source, 'utf8');
+    console.log('[sync-env] 🎉 Đã lưu cập nhật cấu hình vào assets/js/app.js thành công!');
   } else {
     console.log('[sync-env] Mọi cấu hình đã đồng bộ.');
   }
