@@ -177,7 +177,7 @@ const paths={leaf:'<path d="M20 3C10 2 3 6 4 13c1 7 11 8 14 1 2-4 2-8 2-11Z"/><p
 const icon=(name)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name]||paths.cards}</svg>`;
 
 /* Lưu trữ, điều hướng và giao diện. Không gửi tài liệu hoặc tiến độ lên máy chủ. */
-const ACCESS_HASH='f0193d7aa375baf624dcf5e194f26c2bc94f12281302558228542481529053b0';
+const ACCESS_HASH='b50d69ec079a3da2e49f32a3fbfb1274595578f38aa011abda60cd0040faf8f5';
 const STORE_KEY='la-vocab-v2',ACCESS_KEY='la-access-v2';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>crypto.randomUUID?crypto.randomUUID():'d'+Array.from(crypto.getRandomValues(new Uint32Array(4)),n=>n.toString(16)).join('');
