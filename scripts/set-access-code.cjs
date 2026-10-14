@@ -10,7 +10,10 @@ function update(code) {
   if (!pattern.test(html)) throw Error('Không tìm thấy ACCESS_HASH trong index.html.');
   const hash = crypto.createHash('sha256').update(code, 'utf8').digest('hex');
   fs.writeFileSync(file, html.replace(pattern, `const ACCESS_HASH='${hash}';`), 'utf8');
-  console.log('\nĐã thay hash SHA-256. Hãy commit/push hoặc deploy lại; không ghi mã thô vào Git.');
+  console.log('\n✔ Đã cập nhật ACCESS_HASH vào index.html.');
+  console.log(`📌 Mã SHA-256 để lưu vào file .env (ACCESS_HASH):`);
+  console.log(`ACCESS_HASH=${hash}`);
+  console.log('\nLưu ý: Không commit mã thô vào Git. Hãy cập nhật vào file .env hoặc biến môi trường Vercel.');
 }
 function finish(code) { try { update(code); } catch (e) { console.error(e.message); process.exitCode=1; } }
 if (process.stdin.isTTY) {

@@ -4,6 +4,9 @@
   "private": true,
   "description": "Ứng dụng từ vựng tĩnh, không cần build. Dependency chỉ dùng cho test Node.",
   "scripts": {
+    "build": "node scripts/sync-env.cjs",
+    "sync-env": "node scripts/sync-env.cjs",
+    "set-access-code": "node scripts/set-access-code.cjs",
     "test": "node tests/core.test.cjs && node tests/storage.test.cjs && node tests/quiz-import.test.cjs",
     "test:quiz-browser": "node tests/quiz-import.browser.cjs"
   },

@@ -67,13 +67,33 @@ Sau đó truy cập: `http://localhost:4173`
 
 *(Bạn cũng có thể dùng Live Server trên VS Code hoặc lệnh `python -m http.server 4173`)*.
 
-### 2. Đổi mã truy cập nhóm (Tùy chọn)
-Nếu muốn đổi mật mã truy cập ứng dụng:
+### 2. Cấu hình bảo mật & Mã truy cập qua `.env`
+Các thông số bảo mật và mã băm được quản lý qua file `.env` (được bảo vệ trong `.gitignore`):
 
+1. Tạo file `.env` từ file mẫu `.env.example`:
 ```powershell
-node scripts/set-access-code.cjs
+# Tạo file .env nếu chưa có
+Copy-Item .env.example .env
 ```
-Nhập mã mới (8–200 ký tự). Script sẽ tự động cập nhật mã hash SHA-256 vào `index.html`.
+
+2. Cấu hình các biến trong `.env`:
+- `ACCESS_HASH`: Mã băm SHA-256 (64 ký tự hex) của mật khẩu nhóm.
+- Hoặc `ACCESS_CODE`: Mật khẩu thô (script sẽ tự băm sang SHA-256).
+- `ACCESS_KEY`: Khóa lưu trạng thái phiên mở khóa trên trình duyệt (`la-access-v2`).
+- `STORE_KEY`: Khóa lưu dữ liệu bộ từ (`la-vocab-v3`).
+
+3. Đồng bộ cấu hình vào ứng dụng:
+```powershell
+npm run sync-env
+# hoặc
+npm run build
+```
+
+4. Nếu muốn đổi mật mã tương tác nhanh qua dòng lệnh:
+```powershell
+npm run set-access-code
+```
+Script sẽ tự tính mã hash SHA-256 và in ra giá trị để bạn lưu vào file `.env` hoặc cấu hình trên Vercel.
 
 ### 3. Chạy kiểm thử (Tests)
 ```powershell
@@ -90,10 +110,11 @@ npm run test:quiz-browser
 ### 4. Triển khai (Deploy)
 Bạn có thể host ứng dụng trên bất kỳ nền tảng tĩnh nào (Vercel, Cloudflare Pages, GitHub Pages,...):
 - **Triển khai lên Vercel**:
-  - Dự án đã có sẵn file [`vercel.json`](vercel.json) với đầy đủ cấu hình bảo mật CSP (Content Security Policy) và clean URLs.
-  - Build command: *để trống*.
-  - Output directory: `.`
-  - *Lưu ý: Luôn tải lên cả thư mục `vendor/` cùng với `index.html`.*
+  - Dự án đã có sẵn file [`vercel.json`](vercel.json) tự động chạy lệnh build `npm run build`.
+  - Trên Vercel Dashboard (**Project Settings > Environment Variables**), thêm biến:
+    - `ACCESS_HASH`: mã băm SHA-256 của mật mã truy cập.
+    - (hoặc `ACCESS_CODE`: mật mã thô).
+  - Vercel sẽ tự động đồng bộ mã hash khi deploy mà **không để lộ mật mã hay mã hash trong mã nguồn Git**.
 
 ---
 
