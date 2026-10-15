@@ -99,7 +99,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -131,6 +132,7 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible,
+textarea:focus-visible,
 [tabindex]:focus-visible {
   outline: 3px solid var(--blue);
   outline-offset: 4px;
@@ -245,7 +247,7 @@ svg {
   margin-left: auto;
 }
 
-.nav-toggle {
+.header .nav-toggle {
   display: none;
 }
 .menu-close-icon {
@@ -365,6 +367,40 @@ svg {
   max-width: 630px;
 }
 
+.intro:has(.home-actions) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+  gap: clamp(24px, 4vw, 64px);
+  align-items: center;
+}
+.home-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.home-actions .btn { width: 100%; min-height: 54px; padding: 12px; }
+.quiz-draft {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 22px;
+  margin-bottom: 20px;
+  border-color: var(--accent);
+}
+.quiz-draft > div:first-child { flex: 1; min-width: 0; }
+.quiz-draft h3 { overflow-wrap: anywhere; }
+.quiz-draft p { color: var(--muted); margin: 8px 0 12px; }
+.quiz-draft .row { flex-wrap: wrap; }
+@media (max-width: 900px) {
+  .intro:has(.home-actions) { grid-template-columns: minmax(0, 1fr); }
+  .home-actions { max-width: 560px; width: 100%; }
+  .quiz-draft { flex-direction: column; align-items: stretch; }
+}
+@media (max-width: 380px) {
+  .home-actions { grid-template-columns: minmax(0, 1fr); }
+}
+
 .pill {
   display: inline-flex;
   align-items: center;
@@ -473,7 +509,8 @@ svg {
 input[type="search"],
 input[type="text"],
 input[type="password"],
-select {
+select,
+textarea {
   border: 1px solid var(--line);
   border-radius: 11px;
   background: var(--panel);
@@ -481,6 +518,13 @@ select {
   min-height: 46px;
   padding: 11px 14px;
   width: 100%;
+}
+
+textarea {
+  display: block;
+  min-height: 110px;
+  resize: vertical;
+  font-weight: 400;
 }
 
 .searchbar input {
@@ -1548,6 +1592,7 @@ body {
 }
 
 .form-stack > label,
+.question-preview > label,
 .form-grid > label,
 .quiz-setup > .panel > label {
   display: grid;
@@ -2169,6 +2214,24 @@ html[data-theme="dark"] .option-3 {
   margin-top: 10px;
 }
 
+#quiz-import-form .question-preview {
+  position: relative;
+}
+#quiz-import-form .question-preview h3 {
+  padding-right: 48px;
+}
+.btn.remove-question {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  font-size: 26px;
+  line-height: 1;
+}
+
 .question-options p {
   margin: 4px 0;
   padding: 6px 12px;
@@ -2312,3 +2375,9 @@ html[data-theme="dark"] .quiz-answer-highlight {
 .file-guide-item .btn {
   margin-top: auto;
 }
+.content-tools { flex-wrap: wrap; margin-bottom: 20px; }
+.manage-card { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+.manage-card[hidden] { display: none; }
+.manage-card > span { min-width: 0; overflow-wrap: anywhere; }
+.manage-card input[type="checkbox"] { flex: 0 0 auto; width: auto; margin-top: 4px; }
+#manual-answer-fields textarea, #manual-card-form textarea { width: 100%; min-height: 90px; }

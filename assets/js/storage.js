@@ -98,6 +98,8 @@ const StorageModel = (() => {
           name: s.name,
           cards: s.cards.map((t) => ({
             ...(t.options ? { options: [...t.options], answer: t.answer } : {}),
+            ...(t.type ? {type: t.type} : {}),
+            ...(t.type === 'short-answer' ? {answer:t.answer} : {}),
             id: t.id,
             word: t.word,
             meaning: t.meaning,

@@ -338,16 +338,78 @@ const Core = (() => {
     return lines;
   }
   function parseQuestions(lines, fileName) {
+    // Retain formatting offsets: Word often splits one answer across runs.
+    const sliceRuns = (runs, begin) => {
+      let offset = 0;
+      return runs.map(r => {
+        const text = r.text.slice(Math.max(0, begin - offset));
+        offset += r.text.length;
+        return {...r, text};
+      }).filter(r=>r.text);
+    };
+    function readMarkedShortAnswer(q) {
+      const runs=q.shortRuns || [];
+      delete q.shortRuns;
+      const text=runs.map(r=>r.text).join('');
+      const spans=[];
+      let offset=0;
+      for (const r of runs) {
+        const end=offset+r.text.length;
+        if ((r.bold || r.highlight || r.colored || r.yellowBg) && /[^\s_]/u.test(r.text)) {
+          const last=spans[spans.length-1];
+          if (last && /^[\s_]*$/u.test(text.slice(last.end,offset))) last.end=end;
+          else spans.push({start:offset,end});
+        }
+        offset=end;
+      }
+      for (const span of spans) {
+        const raw=text.slice(span.start,span.end);
+        const leading=raw.match(/^[\s_]+/u)?.[0].length || 0;
+        const trailing=raw.match(/[\s_]+$/u)?.[0].length || 0;
+        span.start+=leading;span.end-=trailing;
+        span.answer=text.slice(span.start,span.end).replace(/\s+/gu,' ').trim();
+      }
+      // A fully bold prompt is a heading/style, not an answer. Multiple
+      // separated marks need review unless an explicit answer disambiguates.
+      const candidates=spans.filter(s=>s.answer && /[\p{L}\p{N}]/u.test(text.slice(0,s.start)+text.slice(s.end)));
+      const chosen=q.answer ? candidates.filter(s=>normalize(s.answer)===normalize(q.answer)) : candidates;
+      if (chosen.length!==1) return;
+      const span=chosen[0];
+      if (!q.answer) q.answer=span.answer;
+      q.word=(text.slice(0,span.start)+'__________'+text.slice(span.end)).replace(/_{2,}/g,'__________').trim();
+    }
     const questions = [],
       warnings = [];
     let current = null,
-      active = null;
+      active = null, sectionType = 'multiple-choice', chapter = '', tfRuns = [];
     for (const runs of lines) {
       const text = runs.map((r) => r.text).join("");
       if (!text.trim()) continue;
-      const start = text.match(
-        /^\s*(?:C[âa]u\s*\d+\s*[:.)-]?|Question\s*\d+\s*[:.)-]?|\d+[.)])\s*(.*)$/iu,
+      const heading = text.trim().replace(/[:：]\s*$/, '');
+      let nextType = null;
+      if (/^(?:TRUE\s*[/–-]\s*FALSE(?:\s+QUESTIONS)?|ĐÚNG\s*[/–-]\s*SAI)$/iu.test(heading)) nextType = 'true-false';
+      if (/^(?:SHORT\s+ANS(?:WER)?(?:\s+QUESTIONS)?|CÂU HỎI TRẢ LỜI NGẮN|TRẢ LỜI NGẮN)$/iu.test(heading)) nextType = 'short-answer';
+      if (/^(?:MULTIPLE\s+CHOICE(?:\s+QUESTIONS)?|TRẮC NGHIỆM)$/iu.test(heading)) nextType = 'multiple-choice';
+      if (nextType || /^(?:Chapter|Chương)\s+\d+\b/iu.test(heading)) {
+        if (nextType) sectionType = nextType;
+        else { chapter = heading; sectionType = 'multiple-choice'; }
+        current = null; active = null; tfRuns = []; continue;
+      }
+      if (sectionType === 'true-false' && /^\s*(?:T\s*F|T|F)\s*$/i.test(text)) {
+        tfRuns.push(...runs); continue;
+      }
+      const tfPrefix = text.match(/^\s*T\s*F\s*(?=\d+[.)])/i);
+      let start = text.match(
+        /^\s*(?:T\s*F\s*)?(?:C[âa]u\s*\d+\s*[:.)-]?|Question\s*\d+\s*[:.)-]?|\d+[.)])\s*([\s\S]*)$/iu,
       );
+      // Some Word files place the next number inside its sentence. Recover only
+      // the next sequential number beside a blank, and ask for review.
+      const displaced = !start && sectionType === 'short-answer' && current &&
+        text.match(/^(.*_.*\s)(\d+)\)\s*(_.*)$/u);
+      if (displaced && Number(displaced[2]) === current.number + 1) {
+        start = [text, displaced[1] + displaced[3]];
+        warnings.push('Câu ' + displaced[2] + ': số thứ tự nằm giữa câu; hãy kiểm tra nội dung trước khi lưu.');
+      }
       if (start) {
         current = {
           word: start[1],
@@ -355,12 +417,49 @@ const Core = (() => {
           answer: null,
           note: "",
           issues: [],
+          type: tfPrefix ? 'true-false' : sectionType,
+          chapter,
+          number: displaced ? Number(displaced[2]) : Number(text.match(/\d+/)?.[0]),
         };
+        if (current.type === 'short-answer') {
+          current.shortRuns = sliceRuns(runs,text.length-start[1].length);
+          if (displaced) {
+            const leftEnd=displaced[1].length, rightStart=leftEnd+displaced[2].length+1;
+            let offset=0;
+            const left=runs.map(r=>{
+              const part={...r,text:r.text.slice(0,Math.max(0,leftEnd-offset))};
+              offset+=r.text.length;return part;
+            });
+            current.shortRuns=[...left,...sliceRuns(runs,rightStart)];
+          }
+        }
+        if (current.type === 'true-false') {
+          let offset = 0;
+          const marks = new Set();
+          const prefixRuns = tfPrefix ? runs : tfRuns;
+          const limit = tfPrefix ? tfPrefix[0].length : Infinity;
+          for (const r of prefixRuns) {
+            const part = r.text.slice(0, Math.max(0, limit - offset));
+            if (r.bold) for (const m of part.matchAll(/[TF]/gi)) marks.add(m[0].toUpperCase());
+            offset += r.text.length;
+          }
+          current.options = [{label:'T', text:'True', bold:marks.has('T')}, {label:'F', text:'False', bold:marks.has('F')}];
+        }
+        tfRuns = [];
         questions.push(current);
         active = null;
         continue;
       }
       if (!current) continue;
+      const explicit = text.match(/^\s*(?:Đáp án|Answer|Ans)\s*[:：]\s*(.+)$/iu);
+      if (explicit) {
+        let value = explicit[1].trim();
+        if (current.type === 'true-false') {
+          value = /^(?:T|True|Đúng)\.?$/iu.test(value) ? 'T' : /^(?:F|False|Sai)\.?$/iu.test(value) ? 'F' : '';
+        } else if (current.type === 'multiple-choice') value = value.match(/^([A-D])(?:[.)\s]|$)/i)?.[1].toUpperCase() || '';
+        current.answer = value || null;
+        active = null; continue;
+      }
       const explanation = text.match(
         /^\s*(?:Giải thích|Lời giải)\s*:\s*(.*)$/iu,
       );
@@ -370,7 +469,7 @@ const Core = (() => {
         continue;
       }
       const matches = [...text.matchAll(/(?:^|\s)([A-D])[.)：:]\s*/gi)];
-      if (matches.length) {
+      if (matches.length && current.type === 'multiple-choice') {
         for (let i = 0; i < matches.length; i++) {
           const m = matches[i],
             begin = m.index,
@@ -405,7 +504,11 @@ const Core = (() => {
         current.options[active].text += "\n" + text.trim();
         if (runs.some((r) => r.bold && r.text.trim()))
           current.options[active].bold = true;
-      } else current.word += "\n" + text.trim();
+      } else {
+        current.word += "\n" + text.trim();
+        if (current.type === 'short-answer' && current.shortRuns)
+          current.shortRuns.push({text:'\n',bold:false},...runs);
+      }
     }
     if (!questions.length)
       throw Error(
@@ -413,11 +516,16 @@ const Core = (() => {
       );
     questions.forEach((q, i) => {
       const bold = q.options.filter((o) => o.bold);
-      q.options.sort((a, b) => a.label.localeCompare(b.label));
+      if (q.type !== 'true-false') q.options.sort((a, b) => a.label.localeCompare(b.label));
       if (!q.word.trim()) q.issues.push("Thiếu nội dung câu hỏi");
+      if (q.type === 'short-answer') {
+        readMarkedShortAnswer(q);
+        if (!q.answer) warnings.push('Câu ' + (i + 1) + ': chưa có đáp án Short Answer; hãy nhập đáp án và kiểm tra nội dung.');
+        return;
+      }
       if (
-        q.options.length !== 4 ||
-        q.options.map((o) => o.label).join("") !== "ABCD" ||
+        q.options.length !== (q.type === 'true-false' ? 2 : 4) ||
+        q.options.map((o) => o.label).sort().join("") !== (q.type === 'true-false' ? 'FT' : "ABCD") ||
         q.options.some((o) => !o.text.trim())
       )
         q.issues.push("Cần đúng 4 lựa chọn A/B/C/D có nội dung");
@@ -426,8 +534,8 @@ const Core = (() => {
         q.options.length
       )
         q.issues.push("Các lựa chọn bị trùng nội dung");
-      if (bold.length === 1) q.answer = bold[0].label;
-      else
+      if (!q.answer && bold.length === 1) q.answer = bold[0].label;
+      if (!q.answer)
         warnings.push(
           "Câu " +
             (i + 1) +
@@ -447,18 +555,19 @@ const Core = (() => {
   }
   function questionChapters(questions) {
     const cards = questions.map((q, i) => {
-      if (q.issues.length || !q.answer)
+      if (q.issues.length || !q.answer?.trim() || !q.word.trim() || (q.type !== 'short-answer' && !q.options.some(o => o.label === q.answer)))
         throw Error(
-          "Câu " + (i + 1) + ": cần đủ 4 lựa chọn và chọn đáp án đúng.",
+          "Câu " + (i + 1) + ": kiểm tra nội dung, lựa chọn và đáp án đúng.",
         );
       const options = q.options.map((o) => o.text),
-        answer = "ABCD".indexOf(q.answer);
+        answer = q.type === 'short-answer' ? q.answer.trim() : q.options.findIndex(o => o.label === q.answer);
       return {
         id: questionId(q.word, options, answer),
         word: q.word,
         originalWord: q.word,
-        meaning: options[answer],
-        options,
+        meaning: q.type === 'short-answer' ? answer : options[answer],
+        ...(q.type === 'short-answer' ? {} : {options}),
+        type: q.type || 'multiple-choice',
         answer,
         pos: "",
         note: q.note,
@@ -490,7 +599,7 @@ const Core = (() => {
   function deduplicate(cards) {
     const byWord = new Map();
     for (const card of cards) {
-      const key = card.options ? card.id : normalize(card.word),
+      const key = card.options || card.type === 'short-answer' ? card.id : normalize(card.word),
         old = byWord.get(key);
       if (!old) {
         byWord.set(key, { ...card });
@@ -711,19 +820,21 @@ const Core = (() => {
                   throw Error("Thẻ từ vựng hoặc ID không hợp lệ.");
                 if (
                   d.kind === "quiz" &&
-                  (!Array.isArray(c.options) ||
-                    c.options.length !== 4 ||
+                  (c.type === 'short-answer'
+                    ? (c.options != null || !isText(c.answer) || c.answer !== c.meaning)
+                    : (!['multiple-choice', 'true-false', undefined].includes(c.type) || !Array.isArray(c.options) ||
+                    c.options.length !== (c.type === 'true-false' ? 2 : 4) ||
                     c.options.some((o) => !isText(o) || !o.trim()) ||
-                    new Set(c.options.map(normalize)).size !== 4 ||
+                    new Set(c.options.map(normalize)).size !== c.options.length ||
                     !Number.isInteger(c.answer) ||
                     c.answer < 0 ||
-                    c.answer > 3 ||
-                    c.meaning !== c.options[c.answer])
+                    c.answer >= c.options.length ||
+                    c.meaning !== c.options[c.answer]))
                 )
                   throw Error("Câu trắc nghiệm không hợp lệ.");
                 return {
                   ...(d.kind === "quiz"
-                    ? { options: [...c.options], answer: c.answer }
+                    ? { ...(c.options ? {options: [...c.options]} : {}), answer: c.answer, ...(c.type ? {type:c.type} : {}) }
                     : {}),
                   id: c.id,
                   word: c.word,
