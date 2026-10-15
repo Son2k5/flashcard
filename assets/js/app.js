@@ -327,7 +327,7 @@ function renderStorage() {
         "",
       ),
     ) +
-    `<div class="stats storage-summary"><div class="panel stat"><div><strong>${usage.error ? "Không đo được" : formatBytes(usage.total)}</strong><span>Dung lượng các khóa của ứng dụng</span></div></div><div class="panel stat"><div><strong>${ratio.toFixed(1)}%</strong><span>So với ước lượng localStorage 5 MB</span></div></div><div class="panel stat"><div><strong>${store.decks.length}</strong><span>Bộ từ · ${sourceCount} dòng thẻ gốc</span></div></div></div><div class="progress storage-meter" role="progressbar" aria-label="Dung lượng đã dùng theo ước lượng" aria-valuenow="${Math.min(100, Math.round(ratio))}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.min(100, ratio)}%;${ratio > 80 ? "background:var(--red)" : ""}"></i></div>${ratio > 80 ? '<div class="notice error">Bộ nhớ trình duyệt sắp đầy, hãy xóa bớt hoặc xuất sao lưu</div>' : ""}${quotaFailure ? '<div class="notice error">Không ghi được do hết dung lượng. Dữ liệu đang học vẫn còn trong tab. Xuất sao lưu trước, dọn lịch sử hoặc xóa bộ không cần, rồi bấm “Thử lưu lại”.</div>' : ""}${migrationPending ? '<div class="notice">Đang chuyển dữ liệu cũ sang schema 3. Bản cũ vẫn được giữ đến khi tất cả khóa mới ghi thành công. Nếu gần đầy, hãy xuất sao lưu trước rồi dọn dữ liệu để có chỗ chuyển đổi.</div>' : ""}${loadBlocked ? '<div class="notice error">Dữ liệu lưu trữ chưa đọc được; đang chặn ghi đè để bảo vệ bản cũ. Có thể nhập bản sao lưu hợp lệ qua nút “Nhập tiến độ”.</div>' : ""}${writer.pending ? `<div class="notice">${writer.pending} khóa đang chờ lưu. Dữ liệu mới nhất vẫn có trong file xuất sao lưu, kể cả khi lưu trình duyệt thất bại.</div>` : ""}<div class="storage-section-head"><h2>Các bộ từ của bạn</h2><div class="storage-toolbar">${button("cleanup-storage", "Dọn dẹp nhanh", "primary")}${button("retry-save", "Thử lưu lại")}${button("export", "Xuất tất cả")}</div></div>${store.decks.length ? `<div class="table-wrap storage-table"><table aria-label="Các bộ từ của bạn"><thead><tr><th scope="col">Bộ từ</th><th scope="col">Số thẻ</th><th scope="col">Dung lượng</th><th scope="col">Học gần nhất</th><th scope="col">Thao tác</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state">Chưa có bộ từ nào.</div>'}${storageMessage ? `<div class="notice" role="status">${esc(storageMessage)}</div>` : ""}`;
+    `<div class="stats storage-summary"><div class="panel stat"><div><strong>${usage.error ? "Không đo được" : formatBytes(usage.total)}</strong><span>Dung lượng các khóa của ứng dụng</span></div></div><div class="panel stat"><div><strong>${ratio.toFixed(1)}%</strong><span>So với ước lượng localStorage 5 MB</span></div></div><div class="panel stat"><div><strong>${store.decks.length}</strong><span>Bộ từ · ${sourceCount} dòng thẻ gốc</span></div></div></div><div class="progress storage-meter" role="progressbar" aria-label="Dung lượng đã dùng theo ước lượng" aria-valuenow="${Math.min(100, Math.round(ratio))}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.min(100, ratio)}%;${ratio > 80 ? "background:var(--red)" : ""}"></i></div>${ratio > 80 ? '<div class="notice error">Bộ nhớ trình duyệt sắp đầy, hãy xóa bớt hoặc xuất sao lưu</div>' : ""}${quotaFailure ? '<div class="notice error">Không ghi được do hết dung lượng. Dữ liệu đang học vẫn còn trong tab. Xuất sao lưu trước, dọn lịch sử hoặc xóa bộ không cần, rồi bấm “Thử lưu lại”.</div>' : ""}${migrationPending ? '<div class="notice">Đang chuyển dữ liệu cũ sang schema 3. Bản cũ vẫn được giữ đến khi tất cả khóa mới ghi thành công. Nếu gần đầy, hãy xuất sao lưu trước rồi dọn dữ liệu để có chỗ chuyển đổi.</div>' : ""}${loadBlocked ? '<div class="notice error">Dữ liệu lưu trữ chưa đọc được; đang chặn ghi đè để bảo vệ bản cũ. Có thể nhập bản sao lưu hợp lệ qua nút “Nhập tiến độ”.</div>' : ""}${writer.pending ? `<div class="notice">${writer.pending} khóa đang chờ lưu. Dữ liệu mới nhất vẫn có trong file xuất sao lưu, kể cả khi lưu trình duyệt thất bại.</div>` : ""}<div class="storage-section-head"><h2>Các bộ từ của bạn</h2><div class="storage-toolbar">${button("cleanup-storage", "Dọn dẹp nhanh", "primary")}${button("retry-save", "Thử lưu lại")}${button("export", "Xuất tất cả")}</div></div>${store.decks.length ? `<div class="table-wrap storage-table"><table aria-label="Các bộ từ của bạn"><thead><tr><th scope="col">Bộ từ</th><th scope="col">Số thẻ</th><th scope="col">Dung lượng</th><th scope="col">Học gần nhất</th><th scope="col">Thao tác</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state">Chưa có bộ từ nào.</div>'}${storageMessage ? `<div class="notice" role="status">${esc(storageMessage)}</div>` : ""}<p class="muted" style="font-size:12px;margin-top:22px">(độ dài khóa + độ dƯớc tính: ài giá trị) × 2 byte UTF-16; chỉ đếm khóa thuộc ứng dụng. 1 KB = 1024 byte, 1 MB = 1024 KB. Dung lượng thực tế tùy trình duyệt.</p><p class="muted" style="font-size:12px;margin-top:8px">${storageEstimate && Number.isFinite(storageEstimate.quota) ? "Trình duyệt ước lượng toàn website: đã dùng " + formatBytes(storageEstimate.usage || 0) + " / " + formatBytes(storageEstimate.quota) + ". Đây không phải hạn mức riêng localStorage; thanh cảnh báo vẫn dùng mốc thận trọng 5 MB." : "Trình duyệt không cung cấp ước lượng toàn website. Dùng mốc localStorage 5 MB; không ghi dữ liệu rác để thử làm đầy bộ nhớ."}</p>`;
 }
 function exportDeck(id) {
   const d = store.decks.find((d) => d.id === id);
@@ -384,7 +384,7 @@ function deleteDeck(id) {
   store.decks = store.decks.filter((d) => d.id !== id);
   if (store.activeDeckId === id)
     store.activeDeckId = store.decks[0]?.id || null;
-  const keys = ["data", "progress", "stats", "session"].map((k) =>
+  const keys = ["data", "progress", "stats"].map((k) =>
     StorageModel.key(k, id),
   );
   writer.discard(keys);
@@ -413,7 +413,7 @@ function cleanupStorage() {
   const ids = new Set(store.decks.map((d) => d.id));
   let orphanKeys = 0;
   for (const [k] of before.entries) {
-    const match = k.match(/^la-vocab-v3:(?:data|progress|stats|session):(.+)$/);
+    const match = k.match(/^la-vocab-v3:(?:data|progress|stats):(.+)$/);
     if (match && !ids.has(match[1])) {
       writer.discard([k]);
       if (removeStorage(k)) orphanKeys++;
@@ -763,7 +763,7 @@ function leaveSession() {
   if (
     (sessionView === "flash" || sessionView === "quiz") &&
     !confirm(
-      sessionView === "quiz" ? "Rời bài trắc nghiệm? Bài đang làm sẽ được lưu để tiếp tục sau." : "Rời phiên flashcard? Tiến độ từng thẻ đã được lưu.",
+      "Rời phiên học đang dở? Tiến độ từng từ đã được lưu, nhưng phiên này sẽ kết thúc.",
     )
   ) {
     if (playing && !wasPaused && !quiz.answered) {
@@ -780,8 +780,6 @@ function leaveSession() {
     $("#dialog").dataset.kind = "";
   }
   flash = null;
-  saveQuizDraft();
-  flushStorage();
   quiz = null;
   if ("speechSynthesis" in window) speechSynthesis.cancel();
   return true;
@@ -805,7 +803,7 @@ function openDeck(id) {
 const intro = (tag, title, sub, extra = "") =>
   `<section class="intro"><div><div class="eyebrow">${tag}</div><h1>${title}</h1><p>${sub}</p></div>${extra}</section>`;
 function fileGuide() {
-  return `<section class="panel file-guide" aria-label="Hướng dẫn file có thể nộp"><h2>Bạn có thể nộp những file nào?</h2><p class="muted">Chọn đúng loại tài liệu để bắt đầu học. File được đọc ngay trên thiết bị của bạn.</p><div class="file-guide-grid"><article class="file-guide-item"><span class="pill">.docx</span><h3>Bộ từ vựng</h3><p>File Word có bảng gồm cột <b>Từ</b> và <b>Nghĩa</b>, hoặc mỗi dòng một từ, ví dụ: <b>apple: quả táo</b>. Dùng Heading 2 để chia chương.</p>${button("upload", "Thêm bộ từ", "small primary")}</article><article class="file-guide-item"><span class="pill">.docx · .pdf</span><h3>Câu hỏi trắc nghiệm</h3><p>Một file có thể gồm A–D, True/False và Short Answer. Chia phần bằng tiêu đề TRUE/FALSE QUESTIONS, MULTIPLE CHOICE QUESTIONS hoặc SHORT ANSWER QUESTIONS. Ghi <b>Đáp án: …</b> sau mỗi câu. PDF cần có văn bản chọn/copy được; kiểm tra đáp án ở bước xem trước.</p>${button("upload-quiz", "Nhập trắc nghiệm", "small primary")}</article><article class="file-guide-item"><span class="pill">.json</span><h3>Khôi phục tiến độ</h3><p>Dùng file đã tạo bằng <b>Xuất tiến độ</b> của ứng dụng. Khôi phục sẽ thay thế dữ liệu hiện tại; hãy xuất bản sao lưu trước.</p>${button("import-backup", "Nhập tiến độ", "small")}</article></div><p class="muted file-guide-note">Tối đa 30 MB/file. Chưa hỗ trợ .doc, Excel, ảnh hoặc PDF scan. Hãy lưu .doc thành .docx; chuyển bản scan thành văn bản trước khi nhập.</p></section>`;
+  return `<section class="panel file-guide" aria-label="Hướng dẫn file có thể nộp"><h2>Bạn có thể nộp những file nào?</h2><p class="muted">Chọn đúng loại tài liệu để bắt đầu học. File được đọc ngay trên thiết bị của bạn.</p><div class="file-guide-grid"><article class="file-guide-item"><span class="pill">.docx · .xlsx · .csv</span><h3>Bộ từ vựng</h3><p>File Word hoặc Excel (.xlsx, .csv) có các cột <b>STT</b>, <b>Từ vựng</b>, <b>Dạng từ</b>, <b>Nghĩa</b>, <b>Ví dụ</b> hoặc bảng Word Từ và Nghĩa. Mỗi Sheet Excel tương ứng một chương.</p>${button("upload", "Thêm bộ từ", "small primary")}</article><article class="file-guide-item"><span class="pill">.docx · .pdf</span><h3>Câu hỏi trắc nghiệm</h3><p>Mỗi câu có câu hỏi và 4 lựa chọn A, B, C, D. Có thể ghi <b>Đáp án: A</b>. Tự động nhận diện tạo <b>Flashcard</b> hoặc <b>Quiz thử thách</b>.</p>${button("upload-quiz", "Nhập trắc nghiệm", "small primary")}</article><article class="file-guide-item"><span class="pill">.json</span><h3>Khôi phục tiến độ</h3><p>Dùng file đã tạo bằng <b>Xuất tiến độ</b> của ứng dụng. Khôi phục sẽ thay thế dữ liệu hiện tại; hãy xuất bản sao lưu trước.</p>${button("import-backup", "Nhập tiến độ", "small")}</article></div><p class="muted file-guide-note">Tối đa 30 MB/file. Đã hỗ trợ Word (.docx), Excel (.xlsx, .csv) và PDF trắc nghiệm. Chưa hỗ trợ file scan và ảnh.</p></section>`;
 }
 function librarySwitcher() {
   return `<section class="panel library-switcher" aria-label="Chuyển bộ trong thư viện"><div class="switcher-field"><label for="library-deck">Chuyển bộ học <span class="pill">${store.decks.length} bộ trong thư viện</span></label><select id="library-deck" aria-describedby="library-switcher-hint">${store.decks.map((d) => `<option value="${esc(d.id)}" ${d.id === store.activeDeckId ? "selected" : ""}>${esc(d.name)} · ${d.kind === "quiz" ? "Trắc nghiệm" : "Từ vựng"}</option>`).join("")}</select></div>${button("upload", icon("plus") + " Thêm bộ từ", "small")}<p class="muted switcher-hint" id="library-switcher-hint">Chọn bộ để xem nội dung và thống kê. Tiến độ được lưu riêng cho từng bộ.</p></section>`;
@@ -830,7 +828,7 @@ function renderDecks() {
     .map((d) => {
       const all = visibleCards(d),
         k = all.filter((c) => d.progress[c.id]?.known).length;
-      return `<article class="panel deck-card"><div class="row spread"><span class="chapter-icon">${icon("book")}</span><span class="pill">${d.kind === "quiz" ? "Trắc nghiệm mọi môn" : esc(languages[d.language] || d.language)}</span></div><h2>${esc(d.name)}</h2><p class="muted">${all.length} ${d.kind === "quiz" ? "câu hỏi" : "từ"} · ${Core.organize(d).length} nhóm</p><div class="progress-label"><span>${k} ${d.kind === "quiz" ? "câu đã nắm vững" : "từ đã thuộc"}</span><strong>${Math.round((k * 100) / (all.length || 1))}%</strong></div><div class="progress"><i style="width:${(k * 100) / (all.length || 1)}%"></i></div><div class="row spread" style="margin-top:20px">${button("open-deck", (d.kind === "quiz" ? "Luyện trắc nghiệm " : "Mở bộ từ ") + icon("arrow"), "primary small", `data-id="${d.id}"`)}${button("deck-settings", "Cài đặt", "small", `data-id="${d.id}"`)}</div></article>`;
+      return `<article class="panel deck-card"><div class="row spread"><span class="chapter-icon">${icon("book")}</span><span class="pill">${d.kind === "quiz" ? "Trắc nghiệm · Flashcard" : esc(languages[d.language] || d.language)}</span></div><h2>${esc(d.name)}</h2><p class="muted">${all.length} ${d.kind === "quiz" ? "câu hỏi" : "từ"} · ${Core.organize(d).length} nhóm</p><div class="progress-label"><span>${k} ${d.kind === "quiz" ? "câu đã nắm vững" : "từ đã thuộc"}</span><strong>${Math.round((k * 100) / (all.length || 1))}%</strong></div><div class="progress"><i style="width:${(k * 100) / (all.length || 1)}%"></i></div><div class="row spread" style="margin-top:20px">${d.kind === "quiz" ? `${button("open-deck-flash", icon("flip") + " Flashcard", "primary small", `data-id="${d.id}"`)}${button("open-deck", "Luyện Quiz " + icon("arrow"), "small", `data-id="${d.id}"`)}` : button("open-deck", "Mở bộ từ " + icon("arrow"), "primary small", `data-id="${d.id}"`)}${button("deck-settings", "Cài đặt", "small", `data-id="${d.id}"`)}</div></article>`;
     })
     .join("");
   $("#main").innerHTML =
@@ -838,12 +836,11 @@ function renderDecks() {
       "MỖI NGÀY MỘT CHÚT",
       "Học mọi môn, mỗi ngày.",
       "Học từ vựng hoặc nhập bộ câu hỏi trắc nghiệm Word/PDF cho mọi môn.",
-      `<div class="home-actions" aria-label="Thêm và quản lý bộ học">${button("upload", icon("upload") + " Thêm bộ từ", "primary")}${button("upload-quiz", icon("plus") + " Nhập trắc nghiệm", "primary")}${button("create-manual-deck", icon("plus") + " Tạo bộ thủ công")}${button("storage", "Quản lý dung lượng")}</div>`,
+      `<div class="row">${button("upload", icon("upload") + " Thêm bộ từ", "primary")}${button("upload-quiz", icon("plus") + " Nhập trắc nghiệm", "primary")}${button("storage", "Quản lý dung lượng")}</div>`,
     ) +
-    store.decks.map(draftHTML).join("") +
     (store.decks.length
       ? `<div class="grid">${cards}</div>`
-      : `<div class="empty-hero"><div class="upload-zone" id="drop-zone">${icon("upload")}<h2>Bắt đầu từ tài liệu của bạn</h2><p>Kéo thả file Word (.docx) hoặc PDF vào đây. Tự nhận diện trắc nghiệm, bảng hoặc dòng từ vựng trong Word. Ví dụ: tools: (n) công cụ; hot: nóng &gt;&lt; cold: lạnh (cặp đối nghĩa).</p>${button("upload", "Chọn file Word / PDF " + icon("arrow"), "primary")}<p>Đọc ngay trên trình duyệt · Không gửi file lên mạng</p></div><div class="sample-area"><div class="sample-card"><div class="sample-inner"><small>MỘT THẺ, MỘT KẾT NỐI MỚI</small><strong>木漏れ日</strong><span class="badge">Tiếng Nhật</span><p>Nắng xuyên qua kẽ lá</p><small>Ngôn ngữ nào cũng có một nơi ở đây.</small></div></div></div></div>`) +
+      : `<div class="empty-hero"><div class="upload-zone" id="drop-zone">${icon("upload")}<h2>Bắt đầu từ tài liệu của bạn</h2><p>Kéo thả file Word (.docx), Excel (.xlsx, .csv) hoặc PDF vào đây. Tự nhận diện bảng từ vựng Excel, bảng hoặc dòng từ trong Word và câu hỏi trắc nghiệm. Ví dụ: tools: (n) công cụ; hot: nóng &gt;&lt; cold: lạnh (cặp đối nghĩa).</p>${button("upload", "Chọn file Word / Excel / PDF " + icon("arrow"), "primary")}<p>Đọc ngay trên trình duyệt · Không gửi file lên mạng</p></div><div class="sample-area"><div class="sample-card"><div class="sample-inner"><small>MỘT THẺ, MỘT KẾT NỐI MỚI</small><strong>木漏れ日</strong><span class="badge">Tiếng Nhật</span><p>Nắng xuyên qua kẽ lá</p><small>Ngôn ngữ nào cũng có một nơi ở đây.</small></div></div></div></div>`) +
     fileGuide();
 }
 function statCards(cards) {
@@ -865,16 +862,20 @@ function statCards(cards) {
 }
 function renderLibrary() {
   const d = deck();
+  const libraryAction =
+    d.kind === "quiz"
+      ? `<div class="row">${button("start-flash-all", icon("flip") + " Học Flashcard", "primary small")}${button("quiz-setup", icon("trophy") + " Luyện Quiz", "small")}${button("deck-settings", "Cài đặt", "small", `data-id="${d.id}"`)}</div>`
+      : button("deck-settings", "Cài đặt bộ từ", "", `data-id="${d.id}"`);
   $("#main").innerHTML =
     intro(
-      "THƯ VIỆN CỦA BẠN",
+      d.kind === "quiz" ? "THƯ VIỆN CÂU HỎI" : "THƯ VIỆN CỦA BẠN",
       esc(d.name),
-      `${esc(languages[d.language] || d.language)} · ${d.organization.mode === "split" ? "Tách theo chapter" : "Gộp tất cả vào một bản"}`,
-      button("deck-settings", "Cài đặt bộ từ", "", `data-id="${d.id}"`),
+      d.kind === "quiz"
+        ? `Bộ câu hỏi trắc nghiệm & Flashcard · ${visibleCards(d).length} câu`
+        : `${esc(languages[d.language] || d.language)} · ${d.organization.mode === "split" ? "Tách theo chapter" : "Gộp tất cả vào một bản"}`,
+      libraryAction,
     ) +
-    contentTools() +
     statCards(visibleCards(d)) +
-    draftHTML(d) +
     librarySwitcher() +
     `<div class="section-head"><h2>Chọn một nhóm để bắt đầu</h2><label class="searchbar">${icon("search")}<input type="search" id="search" value="${esc(search)}" placeholder="Tìm từ hoặc nghĩa trong toàn bộ bộ từ…" aria-label="Tìm kiếm từ vựng"></label></div><div id="library-results"></div>` +
     fileGuide();
@@ -882,7 +883,7 @@ function renderLibrary() {
 }
 function wordTable(cards) {
   if (deck()?.kind === "quiz")
-    return `<div class="section-list">${cards.map((c) => `<article class="panel question-preview"><h3>${esc(c.word)}</h3>${(c.options || []).map((o, i) => `<p class="${i === c.answer ? "quiz-answer-highlight" : ""}">${c.type === "true-false" ? "TF"[i] : "ABCD"[i]}. ${esc(o)}</p>`).join("")}<p><strong class="quiz-answer-highlight">Đáp án: ${c.options ? (c.type === "true-false" ? "TF"[c.answer] : "ABCD"[c.answer]) + ". " : ""}${esc(c.meaning)}</strong></p>${c.note ? `<p>Giải thích: ${esc(c.note)}</p>` : ""}${starButton(c.id)}</article>`).join("") || "<p>Chưa có câu hỏi phù hợp.</p>"}</div>`;
+    return `<div class="section-list">${cards.map((c) => `<article class="panel question-preview"><h3>${esc(c.word)}</h3>${c.options.map((o, i) => `<p class="${i === c.answer ? "quiz-answer-highlight" : ""}">${"ABCD"[i]}. ${esc(o)}</p>`).join("")}<p><strong class="quiz-answer-highlight">Đáp án: ${"ABCD"[c.answer]}. ${esc(c.meaning)}</strong></p>${c.note ? `<p>Giải thích: ${esc(c.note)}</p>` : ""}${starButton(c.id)}</article>`).join("") || "<p>Chưa có câu hỏi phù hợp.</p>"}</div>`;
   if (!cards.length)
     return '<div class="empty-state">Chưa có từ phù hợp.</div>';
   return `<div class="table-wrap"><table><thead><tr><th>Từ</th><th>Nghĩa và ghi chú</th><th>Thao tác</th></tr></thead><tbody>${cards.map((c) => `<tr><td class="word">${badges(c.pos)} ${esc(c.word)}<small>${esc(c.chapterName || "")} / ${esc(c.sectionName || "")}</small></td><td class="meaning">${esc(c.meaning)}${c.note ? `<small>${esc(c.note)}</small>` : ""}</td><td><div class="row" style="flex-wrap:nowrap">${starButton(c.id)}${speaker(c.id)}</div></td></tr>`).join("")}</tbody></table></div>`;
@@ -1285,7 +1286,7 @@ async function importWord(file) {
 }
 function showQuizImportHelp() {
   openDialog(
-    `<h2 id="dialog-title">Nhập trắc nghiệm mọi môn</h2><p>Chọn Word (.docx) hoặc PDF có văn bản. Mỗi câu bắt đầu bằng “Câu 1:” hoặc “1.”, có thể thuộc dạng A–D, True/False hoặc Short Answer trong cùng file. Dùng tiêu đề từng phần để nhận diện loại câu. Ghi “Answer: …” hoặc “Đáp án: …” cho câu trả lời ngắn. Bôi đậm chữ cái, tô màu chữ (đỏ, vàng,...) hoặc tô nền vàng cho đáp án đúng.</p><div class="question-preview">Câu 1: Hành tinh nào gần Mặt Trời nhất?<br><span class="quiz-answer-highlight"><strong>A. Sao Thủy</strong></span><br>B. Sao Kim<br>C. Trái Đất<br>D. Sao Hỏa<br>Giải thích: Sao Thủy có quỹ đạo gần Mặt Trời nhất.</div><p>Có thể đặt 4 đáp án trên các dòng riêng hoặc cùng dòng. PDF nên có bố cục một cột; file scan/ảnh chưa được hỗ trợ. Bạn sẽ xem lại toàn bộ câu hỏi và chỉnh đáp án trước khi lưu.</p><div class="dialog-actions">${button("close-dialog", "Hủy")}${button("choose-quiz-file", "Chọn Word / PDF", "primary")}</div>`,
+    `<h2 id="dialog-title">Nhập trắc nghiệm tạo Flashcard &amp; Quiz</h2><p>Chọn Word (.docx) hoặc PDF có văn bản. Mỗi câu bắt đầu bằng “Câu 1:” hoặc “1.”, có 4 lựa chọn A. B. C. D. Bôi đậm chữ cái, tô màu chữ (đỏ, vàng,...) hoặc tô nền vàng cho đáp án đúng.</p><div class="question-preview">Câu 1: Hành tinh nào gần Mặt Trời nhất?<br><span class="quiz-answer-highlight"><strong>A. Sao Thủy</strong></span><br>B. Sao Kim<br>C. Trái Đất<br>D. Sao Hỏa<br>Giải thích: Sao Thủy có quỹ đạo gần Mặt Trời nhất.</div><p>File trắc nghiệm sẽ tự động tạo thành cả <b>hệ thống Flashcard lật thẻ</b> để ghi nhớ và <b>Quiz thử thách</b> để luyện tập.</p><div class="dialog-actions">${button("close-dialog", "Hủy")}${button("choose-quiz-file", "Chọn Word / PDF", "primary")}</div>`,
   );
 }
 async function readQuizPDF(file) {
@@ -1481,6 +1482,10 @@ async function readQuizPDF(file) {
 }
 async function importQuizFile(file, preloadedLines = null) {
   if (!file || uploading) return;
+  if (/\.(xlsx|csv)$/i.test(file.name)) {
+    await importExcelFile(file);
+    return;
+  }
   if (!/\.(docx|pdf)$/i.test(file.name)) {
     importError("Chọn file Word .docx hoặc PDF.");
     return;
@@ -1539,15 +1544,254 @@ async function importQuizFile(file, preloadedLines = null) {
     $("#file-input").value = "";
   }
 }
+function colNameToIndex(str) {
+  let num = 0;
+  const clean = String(str).toUpperCase().replace(/[^A-Z]/g, "");
+  for (let i = 0; i < clean.length; i++) {
+    num = num * 26 + (clean.charCodeAt(i) - 64);
+  }
+  return num - 1;
+}
+
+function findXmlNodesByLocalName(parent, localName) {
+  if (!parent) return [];
+  const direct = parent.getElementsByTagName(localName);
+  if (direct && direct.length > 0) return Array.from(direct);
+  const matched = [];
+  const target = localName.toLowerCase();
+  const walk = (node) => {
+    for (let i = 0; i < node.childNodes.length; i++) {
+      const child = node.childNodes[i];
+      if (child.nodeType === 1) {
+        const name = child.localName || child.nodeName;
+        if (
+          name.toLowerCase() === target ||
+          name.toLowerCase().endsWith(":" + target)
+        ) {
+          matched.push(child);
+        }
+        walk(child);
+      }
+    }
+  };
+  walk(parent);
+  return matched;
+}
+
+async function readXlsx(file) {
+  const JSZip = await loadJSZip();
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+
+  // 1. Shared Strings
+  const sstFile =
+    zip.file("xl/sharedStrings.xml") ||
+    zip.file(/xl\/sharedStrings\.xml$/i)[0];
+  const sharedStrings = [];
+  if (sstFile) {
+    const sstXml = await sstFile.async("string");
+    const sstDoc = new DOMParser().parseFromString(sstXml, "text/xml");
+    const siNodes = findXmlNodesByLocalName(sstDoc, "si");
+    for (let i = 0; i < siNodes.length; i++) {
+      const tNodes = findXmlNodesByLocalName(siNodes[i], "t");
+      let str = "";
+      for (let j = 0; j < tNodes.length; j++) {
+        str += tNodes[j].textContent || "";
+      }
+      sharedStrings.push(str);
+    }
+  }
+
+  // 2. Workbook & Relationships
+  const wbFile =
+    zip.file("xl/workbook.xml") || zip.file(/xl\/workbook\.xml$/i)[0];
+  if (!wbFile) {
+    throw Error("Không tìm thấy cấu trúc bảng tính Excel trong file.");
+  }
+  const wbXml = await wbFile.async("string");
+  const wbDoc = new DOMParser().parseFromString(wbXml, "text/xml");
+
+  const relsMap = new Map();
+  const relsFile =
+    zip.file("xl/_rels/workbook.xml.rels") ||
+    zip.file(/xl\/_rels\/workbook\.xml\.rels$/i)[0];
+  if (relsFile) {
+    const relsXml = await relsFile.async("string");
+    const relsDoc = new DOMParser().parseFromString(relsXml, "text/xml");
+    const relNodes = findXmlNodesByLocalName(relsDoc, "Relationship");
+    for (let i = 0; i < relNodes.length; i++) {
+      const id = relNodes[i].getAttribute("Id");
+      const target = relNodes[i].getAttribute("Target");
+      if (id && target) {
+        let p = target.replace(/\\/g, "/");
+        if (p.startsWith("/")) p = p.slice(1);
+        if (!p.startsWith("xl/")) p = "xl/" + p;
+        relsMap.set(id, p);
+      }
+    }
+  }
+
+  const sheetNodes = findXmlNodesByLocalName(wbDoc, "sheet");
+  const sheetMetaList = [];
+  for (let i = 0; i < sheetNodes.length; i++) {
+    const s = sheetNodes[i];
+    const name = s.getAttribute("name") || `Sheet${i + 1}`;
+    const rId =
+      s.getAttribute("r:id") ||
+      s.getAttribute("id") ||
+      s.getAttribute("sheetId");
+    let sheetPath = relsMap.get(rId);
+    if (!sheetPath) {
+      sheetPath = `xl/worksheets/sheet${i + 1}.xml`;
+    }
+    sheetMetaList.push({ name, path: sheetPath });
+  }
+
+  if (!sheetMetaList.length) {
+    const matched = zip.file(/xl\/worksheets\/sheet\d+\.xml/i);
+    for (let i = 0; i < matched.length; i++) {
+      sheetMetaList.push({ name: `Sheet${i + 1}`, path: matched[i].name });
+    }
+  }
+
+  // 3. Worksheets
+  const sheets = [];
+  for (const meta of sheetMetaList) {
+    let sFile = zip.file(meta.path);
+    if (!sFile) {
+      const lower = meta.path.toLowerCase();
+      const candidates = zip.file(new RegExp(lower.replace(/\./g, "\\."), "i"));
+      if (candidates && candidates.length) sFile = candidates[0];
+    }
+    if (!sFile) continue;
+
+    const sXml = await sFile.async("string");
+    const sDoc = new DOMParser().parseFromString(sXml, "text/xml");
+    const rowNodes = findXmlNodesByLocalName(sDoc, "row");
+    const rows = [];
+
+    for (let rIdx = 0; rIdx < rowNodes.length; rIdx++) {
+      const rowEl = rowNodes[rIdx];
+      const rAttr = rowEl.getAttribute("r");
+      const rowNumber = rAttr ? parseInt(rAttr, 10) - 1 : rIdx;
+
+      const cNodes = findXmlNodesByLocalName(rowEl, "c");
+      let rowCells = rows[rowNumber] || [];
+      let nextCol = 0;
+
+      for (let cIdx = 0; cIdx < cNodes.length; cIdx++) {
+        const cEl = cNodes[cIdx];
+        const rCoord = cEl.getAttribute("r");
+        let colIndex = nextCol;
+        if (rCoord) {
+          const match = rCoord.match(/^([A-Za-z]+)(\d+)$/);
+          if (match) {
+            colIndex = colNameToIndex(match[1]);
+          }
+        }
+        nextCol = colIndex + 1;
+
+        const cellType = cEl.getAttribute("t");
+        const vNodes = findXmlNodesByLocalName(cEl, "v");
+        const rawVal = vNodes.length ? vNodes[0].textContent : "";
+        let val = "";
+
+        if (cellType === "s") {
+          val = sharedStrings[parseInt(rawVal, 10)] ?? "";
+        } else if (cellType === "inlineStr") {
+          const tNodes = findXmlNodesByLocalName(cEl, "t");
+          val = tNodes.map((t) => t.textContent).join("");
+        } else if (cellType === "b") {
+          val = rawVal === "1" ? "TRUE" : "FALSE";
+        } else if (cellType === "e") {
+          val = "";
+        } else {
+          val = rawVal;
+        }
+
+        rowCells[colIndex] = val;
+      }
+      rows[rowNumber] = rowCells;
+    }
+
+    const compactRows = [];
+    for (let i = 0; i < rows.length; i++) {
+      if (!rows[i]) continue;
+      const r = [];
+      for (let j = 0; j < rows[i].length; j++) {
+        r[j] = rows[i][j] || "";
+      }
+      if (r.some((cell) => cell.trim().length > 0)) {
+        compactRows.push(r);
+      }
+    }
+
+    if (compactRows.length > 0) {
+      sheets.push({ name: meta.name, rows: compactRows });
+    }
+  }
+
+  return sheets;
+}
+
+async function importExcelFile(file) {
+  if (!file || uploading) return;
+  if (file.size > 30 * 1024 * 1024) {
+    importError("File quá lớn (tối đa 30 MB). Hãy giảm bớt kích thước file.");
+    return;
+  }
+  uploading = true;
+  header();
+  openDialog(
+    '<h2 id="dialog-title">Đang đọc tài liệu…</h2><p role="status">Đang phân tích bảng từ vựng Excel / CSV.</p>',
+  );
+  try {
+    let sheets = [];
+    if (/\.csv$/i.test(file.name)) {
+      const text = await file.text();
+      const rows = Core.parseCsv(text);
+      sheets = [{ name: file.name.replace(/\.csv$/i, ""), rows }];
+    } else {
+      sheets = await readXlsx(file);
+    }
+
+    if (!sheets || !sheets.length) {
+      throw Error("Không tìm thấy dữ liệu từ vựng trong file Excel.");
+    }
+
+    const parsed = Core.parseSpreadsheet(sheets, file.name);
+    uploading = false;
+    header();
+    pending = { kind: "import", parsed };
+    showPreview();
+  } catch (e) {
+    uploading = false;
+    header();
+    importError(e.message || "Không thể đọc dữ liệu từ file Excel.");
+  } finally {
+    $("#file-input").value = "";
+    $("#quiz-file-input").value = "";
+  }
+}
+
 async function processUploadedFile(file) {
   if (!file || uploading) return;
   if (/\.pdf$/i.test(file.name)) {
     await importQuizFile(file);
     return;
   }
+  if (/\.(xlsx|csv)$/i.test(file.name)) {
+    await importExcelFile(file);
+    return;
+  }
+  if (/\.xls$/i.test(file.name)) {
+    importError(
+      "File .xls (Excel cũ) chưa được hỗ trợ trực tiếp. Vui lòng mở file và Lưu thành (Save As) .xlsx hoặc .csv rồi thử lại.",
+    );
+    return;
+  }
   if (!/\.docx$/i.test(file.name)) {
     importError(
-      "Vui lòng chọn file Word (.docx) hoặc PDF (.pdf). File scan và ảnh không được hỗ trợ.",
+      "Vui lòng chọn file Word (.docx), Excel (.xlsx, .csv) hoặc PDF (.pdf). File scan và ảnh không được hỗ trợ.",
     );
     return;
   }
@@ -1629,123 +1873,45 @@ async function processUploadedFile(file) {
     $("#quiz-file-input").value = "";
   }
 }
+function syncQuizPreviewInputs() {
+  if (pending?.kind !== "quiz-import") return;
+  const nameEl = $("#quiz-deck-name");
+  if (nameEl) pending.parsed.name = nameEl.value;
+  for (const el of document.querySelectorAll("[data-question-word]")) {
+    const idx = Number(el.dataset.questionWord);
+    if (pending.parsed.questions[idx]) pending.parsed.questions[idx].word = el.value;
+  }
+  for (const el of document.querySelectorAll("[data-question-answer]")) {
+    const idx = Number(el.dataset.questionAnswer);
+    if (pending.parsed.questions[idx]) pending.parsed.questions[idx].answer = el.value;
+  }
+}
 function showQuizPreview() {
   const p = pending.parsed;
   openDialog(
-    `<h2 id="dialog-title">Kiểm tra ${p.questions.length} câu hỏi</h2><p>Chữ đậm, chữ tô màu hoặc nền vàng là đáp án nhận diện từ file (được tô nền vàng). Kiểm tra từng loại câu, sửa nội dung và nhập đáp án còn thiếu. Short Answer được chấm theo đáp án bạn nhập, không phân biệt hoa/thường và khoảng trắng thừa. Câu A–D thiếu lựa chọn phải sửa trong tài liệu rồi nhập lại.</p><form id="quiz-import-form" class="form-stack"><label>Tên bộ câu hỏi / môn học<input id="quiz-deck-name" type="text" maxlength="200" required value="${esc(p.name.slice(0, 200))}"></label>${p.questions.map((q, i) => `<section class="question-preview">${button("remove-import-question", "&times;", "danger remove-question", `data-index="${i}" aria-label="Bỏ câu ${i + 1}" title="Bỏ câu này"`)}<h3>Câu ${i + 1} · ${q.type === "true-false" ? "True/False" : q.type === "short-answer" ? "Short Answer" : "A–D"}</h3>${q.chapter ? `<p class="muted">${esc(q.chapter)}</p>` : ""}<label>Nội dung câu hỏi<textarea data-question-word="${i}" required>${esc(q.word)}</textarea></label><div class="question-options" data-question-index="${i}">${q.options.map((o) => `<p class="${q.answer === o.label || (!q.answer && o.bold) ? "quiz-answer-highlight" : ""}" data-option-label="${o.label}">${q.answer === o.label || (!q.answer && o.bold) ? "<strong>" : ""}${o.label}. ${esc(o.text)}${q.answer === o.label || (!q.answer && o.bold) ? "</strong>" : ""}</p>`).join("")}</div>${q.note ? `<p>Giải thích: ${esc(q.note)}</p>` : ""}${q.issues.length ? `<p class="notice error">${q.issues.map(esc).join(" · ")}</p>` : ""}<label>Đáp án đúng${q.type === "short-answer" ? `<input type="text" data-question-answer="${i}" required value="${esc(q.answer || "")}" placeholder="Nhập câu trả lời ngắn">` : `<select data-question-answer="${i}" required><option value="">Chọn đáp án đúng</option>${q.options.map((o) => `<option value="${o.label}" ${q.answer === o.label ? "selected" : ""}>${q.type === "true-false" ? o.text : o.label}</option>`).join("")}</select>`}</label></section>`).join("")}<p id="quiz-import-error" class="gate-error" role="alert"></p><div class="dialog-actions">${button("close-dialog", "Hủy")}<button class="btn primary" type="submit" ${!p.questions.length || p.questions.some((q) => q.issues.length) ? "disabled" : ""}>Lưu bộ câu hỏi và luyện quiz</button></div></form>`,
+    `<h2 id="dialog-title">Kiểm tra ${p.questions.length} câu trắc nghiệm</h2><p>Chữ đậm, chữ tô màu hoặc nền vàng là đáp án nhận diện từ file (được tô nền vàng). Chọn chế độ bạn muốn học và chỉnh sửa nếu cần.</p>${p.warnings.length ? `<div class="notice">${p.warnings.map(esc).join("<br>")}</div>` : ""}<form id="quiz-import-form" class="form-stack"><label>Tên bộ câu hỏi / môn học<input id="quiz-deck-name" type="text" maxlength="200" required value="${esc(p.name.slice(0, 200))}"></label><fieldset class="quiz-mode-fieldset"><legend>Chế độ tạo &amp; học</legend><div class="mode-options-grid"><label class="radio-option"><input type="radio" name="quiz-target-mode" value="flashcard" id="mode-flashcard"><span><b>🗂️ Bộ Flashcard</b><small>Lật thẻ ghi nhớ câu hỏi, đáp án và lời giải.</small></span></label><label class="radio-option"><input type="radio" name="quiz-target-mode" value="quiz" id="mode-quiz" checked><span><b>🎯 Bộ Quiz thử thách</b><small>Luyện làm bài trắc nghiệm tính giờ và đua bot.</small></span></label><label class="radio-option"><input type="radio" name="quiz-target-mode" value="both" id="mode-both"><span><b>⚡ Cả Flashcard &amp; Quiz</b><small>Lưu vào thư viện để học linh hoạt cả hai chế độ.</small></span></label></div></fieldset>${p.questions.map((q, i) => `<section class="question-preview"><button type="button" class="btn ghost remove-question" data-action="remove-import-question" data-id="${i}" aria-label="Xóa câu ${i + 1}">×</button><h3>Câu ${i + 1}</h3><label>Nội dung câu hỏi<input type="text" data-question-word="${i}" value="${esc(q.word)}" required></label><div class="question-options" data-question-index="${i}">${q.options.map((o) => `<p class="${q.answer === o.label || (!q.answer && o.bold) ? "quiz-answer-highlight" : ""}" data-option-label="${o.label}">${q.answer === o.label || (!q.answer && o.bold) ? "<strong>" : ""}${o.label}. ${esc(o.text)}${q.answer === o.label || (!q.answer && o.bold) ? "</strong>" : ""}</p>`).join("")}</div>${q.note ? `<p>Giải thích: ${esc(q.note)}</p>` : ""}${q.issues.length ? `<p class="notice error">${q.issues.map(esc).join(" · ")}</p>` : ""}${q.type === "short-answer" ? `<label>Đáp án đúng<input type="text" data-question-answer="${i}" value="${esc(q.answer || "")}" required placeholder="Nhập đáp án ngắn"></label>` : q.type === "true-false" ? `<label>Đáp án đúng<select data-question-answer="${i}" required><option value="">Chọn đáp án đúng</option><option value="T" ${q.answer === "T" ? "selected" : ""}>T (True / Đúng)</option><option value="F" ${q.answer === "F" ? "selected" : ""}>F (False / Sai)</option></select></label>` : `<label>Đáp án đúng<select data-question-answer="${i}" required><option value="">Chọn đáp án đúng</option>${["A", "B", "C", "D"].map((v) => `<option value="${v}" ${q.answer === v ? "selected" : ""}>${v}</option>`).join("")}</select></label>`}</section>`).join("")}<p id="quiz-import-error" class="gate-error" role="alert"></p><div class="dialog-actions">${button("close-dialog", "Hủy")}${button("save-quiz-as-flash", icon("flip") + " Lưu &amp; Học Flashcard", "small", p.questions.some((q) => q.issues.length) ? 'disabled style="display:none"' : "")}<button class="btn primary" type="submit" id="quiz-import-submit-btn" ${p.questions.some((q) => q.issues.length) ? "disabled" : ""}>Lưu bộ câu hỏi và luyện quiz</button></div></form>`,
   );
 }
-function removeImportQuestion(index) {
-  if (pending?.kind !== 'quiz-import') return;
-  const p = pending.parsed;
-  p.name = $('#quiz-deck-name').value;
-  for (const el of document.querySelectorAll('[data-question-word]'))
-    p.questions[Number(el.dataset.questionWord)].word = el.value;
-  for (const el of document.querySelectorAll('[data-question-answer]'))
-    p.questions[Number(el.dataset.questionAnswer)].answer = el.value;
-  p.questions.splice(index, 1);
-  showQuizPreview();
-}
-
-function contentTools() {
-  return `<div class="row content-tools">${button('add-manual-card', 'Thêm thẻ / câu hỏi', 'primary small')}${button('manage-cards', 'Quản lý · Xóa câu', 'small')}${button('create-manual-deck', 'Tạo bộ mới', 'small')}</div>`;
-}
-
-function showManualCard(newDeck = false, defaultType = '') {
-  if (!newDeck && !deck()) return;
-  const d = newDeck ? null : deck();
-  const types = d?.kind === 'quiz'
-    ? [['short-answer','Câu hỏi trả lời ngắn'], ['multiple-choice','Trắc nghiệm A–D'], ['true-false','True/False']]
-    : d ? [['flashcard','Flashcard']] : [['flashcard','Bộ flashcard'], ['short-answer','Bộ câu hỏi trả lời ngắn'], ['multiple-choice','Bộ câu trắc nghiệm A–D'], ['true-false','Bộ câu hỏi True/False']];
-  const sections = d?.chapters.flatMap(ch => ch.sections.map(s => [s.id, ch.name + ' / ' + s.name])) || [];
-  openDialog(`<h2 id="dialog-title">${newDeck ? 'Tạo bộ học thủ công' : 'Thêm thẻ / câu hỏi'}</h2><form id="manual-card-form" class="form-stack" data-new-deck="${newDeck}">
-    ${newDeck ? '<label>Tên bộ học<input id="manual-deck-name" required maxlength="200"></label>' : `<p>Bộ học: <b>${esc(d.name)}</b></p><label>Thêm vào section<select id="manual-section">${sections.map(([id,name])=>`<option value="${esc(id)}">${esc(name)}</option>`).join('')}</select></label>`}
-    <label>${newDeck ? 'Loại bộ / thẻ đầu tiên' : 'Loại câu'}<select id="manual-type">${types.map(([v,t])=>`<option value="${v}" ${v===defaultType?'selected':''}>${t}</option>`).join('')}</select></label>
-    <p class="muted">Bộ câu hỏi có thể chứa cả A–D, True/False và trả lời ngắn. Tạo thẻ đầu tiên rồi tiếp tục thêm từng câu.</p>
-    <label>Mặt trước / Nội dung câu hỏi<textarea id="manual-word" required maxlength="100000"></textarea></label>
-    <div id="manual-answer-fields"></div>
-    <label>Ghi chú / Giải thích<textarea id="manual-note" maxlength="100000"></textarea></label>
-    <p id="manual-error" class="gate-error" role="alert"></p>
-    <div class="dialog-actions">${button('close-dialog','Hủy')}<button class="btn" type="submit" value="more">Lưu và thêm tiếp</button><button class="btn primary" type="submit" value="done">Lưu</button></div></form>`);
-  renderManualAnswerFields();
-}
-
-function renderManualAnswerFields() {
-  const type = $('#manual-type').value;
-  $('#manual-answer-fields').innerHTML = type === 'multiple-choice'
-    ? `<div class="form-stack">${['A','B','C','D'].map(v=>`<label>Lựa chọn ${v}<input data-manual-option="${v}" required maxlength="100000"></label>`).join('')}<label>Đáp án đúng<select id="manual-answer" required><option value="">Chọn đáp án</option>${['A','B','C','D'].map(v=>`<option>${v}</option>`).join('')}</select></label></div>`
-    : type === 'true-false' ? '<label>Đáp án đúng<select id="manual-answer" required><option value="">Chọn đáp án</option><option value="T">True (Đúng)</option><option value="F">False (Sai)</option></select></label>'
-    : `<label>${type === 'flashcard' ? 'Mặt sau / Nghĩa' : 'Đáp án đúng'}<textarea id="manual-answer" required maxlength="100000"></textarea></label>`;
-}
-
-function commitManualCard(more) {
-  try {
-    const newDeck = $('#manual-card-form').dataset.newDeck === 'true';
-    const type = $('#manual-type').value, word = $('#manual-word').value.trim(), answer = $('#manual-answer').value.trim(), note = $('#manual-note').value.trim();
-    if (!word || !answer) throw Error('Nhập đủ nội dung và đáp án.');
-    let card;
-    if (type === 'flashcard') card = {id:Core.cardId(word,answer),word,originalWord:word,meaning:answer,pos:'',note};
-    else {
-      const options = type === 'true-false' ? [{label:'T',text:'True'},{label:'F',text:'False'}] : type === 'multiple-choice' ? [...document.querySelectorAll('[data-manual-option]')].map(el=>({label:el.dataset.manualOption,text:el.value.trim()})) : [];
-      if (options.some(o=>!o.text) || new Set(options.map(o=>Core.normalize(o.text))).size !== options.length) throw Error('Các lựa chọn phải có nội dung và không trùng nhau.');
-      card = Core.questionChapters([{word,answer,note,type,options,issues:[]}])[0].sections[0].cards[0];
-    }
-    let d = deck();
-    if (newDeck) {
-      const name = $('#manual-deck-name').value.trim();
-      if (!name || name.length > 200) throw Error('Tên bộ học cần từ 1 đến 200 ký tự.');
-      if (store.decks.length >= 100) throw Error('Đã đạt giới hạn 100 bộ học.');
-      d = {id:uid(),kind:type==='flashcard'?'vocab':'quiz',name,language:'vi-VN',sourceName:'',hasChapters:false,chapters:[{id:uid(),name:'Tất cả',sections:[{id:uid(),name:'Thẻ tự tạo',cards:[card]}]}],organization:{mode:'merged',dedupe:false},progress:{},activity:[],records:{},quizMemory:{}};
-      store.decks.push(d);store.activeDeckId=d.id;
-    } else {
-      if (originalCards(d).some(c=>c.id===card.id)) throw Error('Thẻ này đã có trong bộ học.');
-      const section = d.chapters.flatMap(ch=>ch.sections).find(s=>s.id===$('#manual-section').value);
-      if (!section) throw Error('Không tìm thấy section.');
-      section.cards.push(card);
-    }
-    save('all-deck',d.id);
-    const saved = !loadBlocked && flushStorage();
-    $('#dialog').close();setup=null;view=saved?(d.kind==='quiz'?'quiz-setup':'library'):'storage';render();
-    toast(saved?'Đã lưu thẻ vào bộ học.':'Chưa lưu được trên trình duyệt; hãy xuất sao lưu hoặc dọn dung lượng.');
-    if (more && saved) showManualCard(false,type);
-  } catch(e) { $('#manual-error').textContent=e.message; }
-}
-
-function showManageCards() {
-  const d=deck();if (!d) return;
-  openDialog(`<h2 id="dialog-title">Quản lý nội dung · ${esc(d.name)}</h2><p>Chọn các thẻ hoặc câu hỏi không muốn dùng rồi xóa. Các bản trùng cùng nội dung và tiến độ đi kèm sẽ được xóa khỏi bộ này.</p><label>Tìm nội dung<input id="manage-search" type="search" placeholder="Tìm câu hỏi hoặc đáp án"></label><div class="row">${button('select-managed-cards','Chọn / bỏ chọn kết quả','small')}${button('delete-managed-cards','Xóa câu đã chọn','danger small','id="delete-managed" disabled')}</div><p id="manage-count" role="status"></p><div id="manage-list" class="form-stack">${originalCards(d).map(c=>`<label class="panel manage-card" data-search="${esc(Core.normalize(c.word+' '+c.meaning))}"><input type="checkbox" data-manage-card="${c.id}"><span><strong class="text-preserve">${esc(c.word)}</strong><br><span class="text-preserve">${esc(c.meaning)}</span></span></label>`).join('')}</div><p id="manage-error" role="alert" class="gate-error"></p><div class="dialog-actions">${button('add-manual-card','Thêm thẻ / câu hỏi','primary')}${button('close-dialog','Đóng')}</div>`);
-  updateManageSelection();
-}
-function updateManageSelection() {
-  const count=document.querySelectorAll('[data-manage-card]:checked').length;
-  $('#manage-count').textContent=`Đã chọn ${count} / ${originalCards(deck()).length} thẻ`;
-  $('#delete-managed').disabled=!count;
-}
-function deleteManagedCards() {
-  const ids=new Set([...document.querySelectorAll('[data-manage-card]:checked')].map(el=>el.dataset.manageCard)), d=deck();
-  if (!ids.size) return;
-  if (ids.size===originalCards(d).length) {$('#manage-error').textContent='Cần giữ ít nhất một thẻ. Để xóa cả bộ, dùng Cài đặt bộ học hoặc Quản lý dung lượng.';return;}
-  if (!confirm(`Xóa ${ids.size} thẻ/câu hỏi đã chọn và tiến độ tương ứng khỏi bộ “${d.name}”?`)) return;
-  d.chapters=d.chapters.map(ch=>({...ch,sections:ch.sections.map(s=>({...s,cards:s.cards.filter(c=>!ids.has(c.id))})).filter(s=>s.cards.length)})).filter(ch=>ch.sections.length);
-  for (const id of ids) {delete d.progress[id];delete d.quizMemory[id];}
-  save('all-deck',d.id);const saved=!loadBlocked&&flushStorage();
-  setup=null;render();
-  if (saved) {showManageCards();toast(`Đã xóa ${ids.size} thẻ/câu hỏi.`);}
-  else {$('#dialog').close();view='storage';render();toast('Chưa lưu được thay đổi; hãy xuất sao lưu hoặc dọn dung lượng.');}
-}
-function commitQuizImport() {
+function commitQuizImport(forcedMode = null) {
   try {
     if (pending?.kind !== "quiz-import") return;
     const p = pending.parsed,
       name = $("#quiz-deck-name").value.trim();
     if (!name || name.length > 200)
       throw Error("Tên bộ câu hỏi cần từ 1 đến 200 ký tự.");
-    for (const el of document.querySelectorAll("[data-question-answer]"))
-      p.questions[Number(el.dataset.questionAnswer)].answer = el.value.trim();
-    for (const el of document.querySelectorAll("[data-question-word]"))
-      p.questions[Number(el.dataset.questionWord)].word = el.value.trim();
-    if (!p.questions.length) throw Error("Cần giữ ít nhất một câu hỏi.");
+    for (const el of document.querySelectorAll("[data-question-answer]")) {
+      const idx = Number(el.dataset.questionAnswer);
+      if (p.questions[idx]) p.questions[idx].answer = el.value.trim();
+    }
+    for (const el of document.querySelectorAll("[data-question-word]")) {
+      const idx = Number(el.dataset.questionWord);
+      if (p.questions[idx]) p.questions[idx].word = el.value.trim();
+    }
     const chapters = Core.questionChapters(p.questions);
+    const selectedMode =
+      forcedMode ||
+      $('input[name="quiz-target-mode"]:checked')?.value ||
+      "quiz";
     const d = {
       id: uid(),
       kind: "quiz",
@@ -1766,13 +1932,27 @@ function commitQuizImport() {
     const saved = !loadBlocked && flushStorage();
     pending = null;
     $("#dialog").close();
-    view = saved ? "quiz-setup" : "storage";
-    render();
-    toast(
-      saved
-        ? "Đã lưu bộ câu hỏi trắc nghiệm."
-        : "Bộ câu hỏi đã mở nhưng chưa lưu được; hãy xuất sao lưu hoặc dọn dung lượng.",
-    );
+    if (!saved) {
+      view = "storage";
+      render();
+      toast(
+        "Bộ câu hỏi đã mở nhưng chưa lưu được; hãy xuất sao lưu hoặc dọn dung lượng.",
+      );
+      return;
+    }
+    if (selectedMode === "flashcard") {
+      const cards = originalCards(d);
+      startFlash(cards, d.name);
+      toast("Đã lưu bộ câu hỏi và bắt đầu học Flashcard.");
+    } else if (selectedMode === "both") {
+      view = "library";
+      render();
+      toast("Đã lưu bộ học. Bạn có thể chọn học Flashcard hoặc luyện Quiz.");
+    } else {
+      view = "quiz-setup";
+      render();
+      toast("Đã lưu bộ câu hỏi trắc nghiệm.");
+    }
   } catch (e) {
     $("#quiz-import-error").textContent = e.message;
   }
@@ -1878,7 +2058,6 @@ async function importBackup(file) {
     save("all");
     const ok = flushStorage();
     if (ok) {
-      for (const d of previous.decks) deleteQuizDraft(d.id);
       const ids = new Set(store.decks.map((d) => d.id));
       for (const d of previous.decks)
         if (!ids.has(d.id))
@@ -1941,17 +2120,48 @@ function renderFlash() {
     render();
     return;
   }
+  const isQuestion = Boolean(c.options?.length || c.type || deck()?.kind === "quiz");
   const front = flash.reverse ? c.meaning : c.word,
     back = flash.reverse ? c.word : c.meaning,
     done = Object.keys(flash.resolved).length;
+  const frontLabel = isQuestion
+    ? flash.reverse
+      ? "ĐÁP ÁN ĐÚNG"
+      : c.type === "true-false"
+        ? "CÂU HỎI ĐÚNG / SAI"
+        : c.type === "short-answer"
+          ? "CÂU HỎI TRẢ LỜI NGẮN"
+          : "CÂU HỎI TRẮC NGHIỆM"
+    : flash.reverse
+      ? "NGHĨA"
+      : "TỪ CẦN NHỚ";
+  const backLabel = isQuestion
+    ? flash.reverse
+      ? "CÂU HỎI GỐC"
+      : "ĐÁP ÁN ĐÚNG & LỜI GIẢI"
+    : flash.reverse
+      ? "TỪ CẦN NHỚ"
+      : "NGHĨA";
+  const frontBody = isQuestion
+    ? flash.reverse
+      ? `<div class="flashcard-answer-box"><span class="flashcard-answer-tag">${c.type !== "short-answer" && typeof c.answer === "number" && "ABCD"[c.answer] ? "ABCD"[c.answer] : "✓"}</span><strong class="flashcard-answer-val">${esc(c.meaning)}</strong></div>${c.note ? `<div class="card-note text-preserve">${esc(c.note)}</div>` : ""}<span class="card-hint">Chạm hoặc nhấn Space để lật xem câu hỏi</span>`
+      : `<div class="card-text question-prompt ${c.word.length > 80 ? "long" : ""}">${esc(c.word)}</div>${c.options?.length ? `<div class="flashcard-options">${c.options.map((opt, i) => `<div class="flashcard-opt-item"><span class="flashcard-opt-badge">${c.type === "true-false" ? (i === 0 ? "T" : "F") : ("ABCD"[i] || (i + 1))}</span><span class="flashcard-opt-text">${esc(opt)}</span></div>`).join("")}</div>` : ""}<span class="card-hint">Chạm hoặc nhấn Space để lật xem đáp án</span>`
+    : `${!flash.reverse ? "<div>" + badges(c.pos) + "</div>" : ""}<div class="card-text ${front.length > 80 ? "long" : ""}">${esc(front)}</div><span class="card-hint">Chạm hoặc nhấn Space để lật</span>`;
+  const backBody = isQuestion
+    ? flash.reverse
+      ? `<div class="card-text question-prompt ${c.word.length > 80 ? "long" : ""}">${esc(c.word)}</div>${c.options?.length ? `<div class="flashcard-options">${c.options.map((opt, i) => `<div class="flashcard-opt-item"><span class="flashcard-opt-badge">${c.type === "true-false" ? (i === 0 ? "T" : "F") : ("ABCD"[i] || (i + 1))}</span><span class="flashcard-opt-text">${esc(opt)}</span></div>`).join("")}</div>` : ""}`
+      : `<div class="flashcard-answer-box"><span class="flashcard-answer-tag">${c.type !== "short-answer" && typeof c.answer === "number" && "ABCD"[c.answer] ? "ABCD"[c.answer] : "✓"}</span><strong class="flashcard-answer-val">${esc(c.meaning)}</strong></div>${c.options?.length ? `<div class="flashcard-options review">${c.options.map((opt, i) => `<div class="flashcard-opt-item ${i === c.answer ? "is-correct" : "is-muted"}"><span class="flashcard-opt-badge">${c.type === "true-false" ? (i === 0 ? "T" : "F") : ("ABCD"[i] || (i + 1))}</span><span class="flashcard-opt-text">${esc(opt)}</span>${i === c.answer ? '<span class="flashcard-correct-badge">✓ Đáp án đúng</span>' : ""}</div>`).join("")}</div>` : ""}${c.note ? `<div class="flashcard-note-box"><div class="flashcard-note-title">💡 Giải thích / Lời giải</div><div class="text-preserve">${esc(c.note)}</div></div>` : ""}`
+    : `${flash.reverse ? "<div>" + badges(c.pos) + "</div>" : ""}<div class="card-text ${back.length > 80 ? "long" : ""}">${esc(back)}</div>${c.note ? `<div class="card-note text-preserve">${esc(c.note)}</div>` : ""}`;
+
   $("#main").innerHTML =
-    `<div class="study-shell"><div class="study-top">${button("exit-study", icon("back") + " Rời phiên", "small ghost")}<h2>${esc(flash.label)}</h2></div><div class="study-progress"><div class="row spread"><span>Đã hoàn tất</span><strong>${done} / ${flash.cards.length}</strong></div><div class="progress"><i style="width:${(done * 100) / flash.cards.length}%"></i></div></div><div class="tools-row"><div class="row">${button("reverse", icon("flip") + (flash.reverse ? " Nghĩa → Từ" : " Từ → Nghĩa"), "small", `aria-pressed="${flash.reverse}"`)}${button("shuffle-flash", icon("shuffle") + " Xáo trộn", "small")}</div><div class="row">${starButton(c.id)}${speaker(c.id)}</div></div><div class="flashcard ${flash.flipped ? "flipped" : ""}" id="flashcard" data-action="flip" role="button" tabindex="0" aria-label="${esc(flash.flipped ? back : front)}. Bấm để lật thẻ" aria-pressed="${flash.flipped}"><div class="card-inner"><div class="card-face front" aria-hidden="${flash.flipped}"><span class="card-label">${flash.reverse ? "NGHĨA" : "TỪ CẦN NHỚ"}</span>${!flash.reverse ? "<div>" + badges(c.pos) + "</div>" : ""}<div class="card-text ${front.length > 80 ? "long" : ""}">${esc(front)}</div><span class="card-hint">Chạm hoặc nhấn Space để lật</span></div><div class="card-face back" aria-hidden="${!flash.flipped}"><span class="card-label">${flash.reverse ? "TỪ CẦN NHỚ" : "NGHĨA"}</span>${flash.reverse ? "<div>" + badges(c.pos) + "</div>" : ""}<div class="card-text ${back.length > 80 ? "long" : ""}">${esc(back)}</div>${c.note ? `<div class="card-note text-preserve">${esc(c.note)}</div>` : ""}</div></div></div><p class="study-meta">${esc(c.chapterName)} / ${esc(c.sectionName)}${flash.attempts[c.id] ? " · Ôn lại lượt 2" : ""}</p><div class="rating-row">${button("unknown", icon("back") + " Chưa thuộc", "unknown")}${button("known", "Đã thuộc " + icon("check"), "primary")}</div><p class="key-hint"><kbd>Space</kbd> Lật · <kbd>←</kbd> Chưa thuộc · <kbd>→</kbd> Đã thuộc</p><p class="muted" style="text-align:center;font-size:12px">Mỗi từ xuất hiện tối đa 2 lần/vòng. Từ chưa thuộc có thể học lại ở phần tổng kết.</p>${voiceNotice()}</div>`;
+    `<div class="study-shell"><div class="study-top">${button("exit-study", icon("back") + " Rời phiên", "small ghost")}<h2>${esc(flash.label)}</h2></div><div class="study-progress"><div class="row spread"><span>Đã hoàn tất</span><strong>${done} / ${flash.cards.length}</strong></div><div class="progress"><i style="width:${(done * 100) / flash.cards.length}%"></i></div></div><div class="tools-row"><div class="row">${button("reverse", icon("flip") + (isQuestion ? (flash.reverse ? " Đáp án → Câu hỏi" : " Câu hỏi → Đáp án") : (flash.reverse ? " Nghĩa → Từ" : " Từ → Nghĩa")), "small", `aria-pressed="${flash.reverse}"`)}${button("shuffle-flash", icon("shuffle") + " Xáo trộn", "small")}</div><div class="row">${starButton(c.id)}${speaker(c.id)}</div></div><div class="flashcard ${flash.flipped ? "flipped" : ""}" id="flashcard" data-action="flip" role="button" tabindex="0" aria-label="${esc(flash.flipped ? back : front)}. Bấm để lật thẻ" aria-pressed="${flash.flipped}"><div class="card-inner"><div class="card-face front" aria-hidden="${flash.flipped}"><span class="card-label">${frontLabel}</span>${frontBody}</div><div class="card-face back" aria-hidden="${!flash.flipped}"><span class="card-label">${backLabel}</span>${backBody}</div></div></div><p class="study-meta">${esc(c.chapterName || "Trắc nghiệm")} / ${esc(c.sectionName || "Câu hỏi")}${flash.attempts[c.id] ? " · Ôn lại lượt 2" : ""}</p><div class="rating-row">${button("unknown", icon("back") + (isQuestion ? " Chưa nhớ" : " Chưa thuộc"), "unknown")}${button("known", (isQuestion ? "Đã nhớ " : "Đã thuộc ") + icon("check"), "primary")}</div><p class="key-hint"><kbd>Space</kbd> Lật · <kbd>←</kbd> ${isQuestion ? "Chưa nhớ" : "Chưa thuộc"} · <kbd>→</kbd> ${isQuestion ? "Đã nhớ" : "Đã thuộc"}</p><p class="muted" style="text-align:center;font-size:12px">Mỗi câu xuất hiện tối đa 2 lần/vòng. Nội dung chưa thuộc có thể học lại ở phần tổng kết.</p>${voiceNotice()}</div>`;
 }
 function flip() {
   if (view !== "flash") return;
   flash.flipped = !flash.flipped;
   const el = $("#flashcard"),
     c = flashCard();
+  if (!el || !c) return;
   el.classList.toggle("flipped", flash.flipped);
   el.setAttribute("aria-pressed", flash.flipped);
   el.setAttribute(
@@ -1980,9 +2190,10 @@ function rate(value) {
 }
 const flashWrong = () => flash.cards.filter((c) => !flash.resolved[c.id]);
 function renderFlashResult() {
-  const wrong = flashWrong();
+  const wrong = flashWrong(),
+    isQuiz = deck()?.kind === "quiz";
   $("#main").innerHTML =
-    `<div class="study-shell"><div class="panel result-hero"><div class="result-icon">${icon("trophy")}</div><h1>Hoàn thành vòng học!</h1><div class="result-numbers"><div><strong>${flash.cards.length - wrong.length}</strong><span>Từ đã thuộc</span></div><div><strong>${wrong.length}</strong><span>Từ chưa thuộc</span></div></div><div class="row" style="justify-content:center">${button("retry-flash", "Học lại từ chưa thuộc", "primary", wrong.length ? "" : "disabled")}${button("restart-flash", "Học lại toàn bộ")}${button("library", "Về bộ từ", "ghost")}</div></div>${wrong.length ? '<div class="section-head"><h2>Từ cần ôn thêm</h2></div>' + wordTable(wrong) : ""}</div>`;
+    `<div class="study-shell"><div class="panel result-hero"><div class="result-icon">${icon("trophy")}</div><h1>Hoàn thành vòng học!</h1><div class="result-numbers"><div><strong>${flash.cards.length - wrong.length}</strong><span>${isQuiz ? "Câu đã nhớ" : "Từ đã thuộc"}</span></div><div><strong>${wrong.length}</strong><span>${isQuiz ? "Câu cần ôn thêm" : "Từ chưa thuộc"}</span></div></div><div class="row" style="justify-content:center">${button("retry-flash", isQuiz ? "Học lại câu chưa nhớ" : "Học lại từ chưa thuộc", "primary", wrong.length ? "" : "disabled")}${button("restart-flash", "Học lại toàn bộ")}${isQuiz ? button("quiz-setup", icon("trophy") + " Thử sức Quiz") : ""}${button("library", "Về bộ học", "ghost")}</div></div>${wrong.length ? `<div class="section-head"><h2>${isQuiz ? "Câu hỏi cần ôn thêm" : "Từ cần ôn thêm"}</h2></div>` + wordTable(wrong) : ""}</div>`;
 }
 
 /* Quiz thử thách: trạng thái một phiên, một interval, luôn dọn khi rời phiên. */
@@ -2026,8 +2237,6 @@ function renderQuizSetup() {
       "Một cuộc đua nhỏ với chính bạn. Chơi một người; đối thủ mô phỏng luôn được ghi nhãn Bot.",
       `<span class="pill quiz-pill">✦ SẴN SÀNG BỨT PHÁ?</span>`,
     ) +
-    contentTools() +
-    draftHTML(d) +
     `<div class="quiz-setup"><section class="panel"><h2>01 · Chọn sân chơi</h2>${selectHTML(
       "quiz-deck",
       "Bộ học",
@@ -2081,7 +2290,7 @@ function renderQuizSetup() {
         ["mixed", "Hỗn hợp"],
       ],
       setup.format,
-    )}</div><div class="toggle-grid">${toggleHTML("quiz-power", "Power-up", setup.power)}${toggleHTML("quiz-sound", "Âm thanh", store.settings.sound)}${toggleHTML("quiz-bots", "Đua với 4 bot", setup.bots)}${toggleHTML("quiz-shuffle", "Xáo trộn", setup.shuffle)}${toggleHTML("quiz-auto", "Tự chuyển sau 2 giây", setup.auto)}${toggleHTML("quiz-repeat", "Lặp câu sai đến khi đúng", setup.repeat)}</div><p class="muted" style="font-size:12px">Khi bật lặp câu sai: câu sai hoặc hết giờ trở lại sau 2 câu khác (hoặc cuối hàng chờ nếu còn ít câu). Lượt ôn lại không cộng điểm; kết quả tính theo lần trả lời đầu.</p><div class="notice" id="quiz-selection"></div>${button("start-quiz", "Bắt đầu thử thách " + icon("arrow"), "primary quiz-start", 'id="start-quiz"')}<p class="muted" style="font-size:12px">Ít nhất 1 từ để chơi. Khi không đủ 4 đáp án khác nhau, câu hỏi tự chuyển sang gõ. Trả lời quiz không tự đánh dấu “Đã thuộc”.</p></section></div><div class="section-head"><h2>Thành tích theo tập nhóm đã chọn</h2></div><div id="setup-history"></div>`;
+    )}</div><div class="toggle-grid">${toggleHTML("quiz-power", "Power-up", setup.power)}${toggleHTML("quiz-sound", "Âm thanh", store.settings.sound)}${toggleHTML("quiz-bots", "Đua với 4 bot", setup.bots)}${toggleHTML("quiz-shuffle", "Xáo trộn", setup.shuffle)}${toggleHTML("quiz-auto", "Tự chuyển sau 2 giây", setup.auto)}${toggleHTML("quiz-repeat", "Lặp câu sai đến khi đúng", setup.repeat)}</div><p class="muted" style="font-size:12px">Khi bật lặp câu sai: câu sai hoặc hết giờ trở lại sau 2 câu khác (hoặc cuối hàng chờ nếu còn ít câu). Lượt ôn lại không cộng điểm; kết quả tính theo lần trả lời đầu.</p><div class="notice" id="quiz-selection"></div><div class="quiz-actions-row">${button("start-quiz", "Bắt đầu thử thách " + icon("arrow"), "primary quiz-start", 'id="start-quiz"')}${d.kind === "quiz" ? button("start-flash-from-quiz", icon("flip") + " Học Flashcard bộ này") : ""}</div><p class="muted" style="font-size:12px">Ít nhất 1 từ để chơi. Khi không đủ 4 đáp án khác nhau, câu hỏi tự chuyển sang gõ. Trả lời quiz không tự đánh dấu “Đã thuộc”.</p></section></div><div class="section-head"><h2>Thành tích theo tập nhóm đã chọn</h2></div><div id="setup-history"></div>`;
   if (d.kind === "quiz") {
     for (const id of ["quiz-direction", "quiz-format"]) {
       $("#" + id).closest("label").hidden = true;
@@ -2090,8 +2299,8 @@ function renderQuizSetup() {
     $("#quiz-format").value = "choice";
     setup.direction = "forward";
     setup.format = "choice";
-    $("#start-quiz").nextElementSibling.textContent =
-      "A–D: chọn 1 trong 4 đáp án. True/False: chọn Đúng/Sai. Short Answer: gõ câu trả lời rồi nhấn Enter.";
+    $("#start-quiz").parentElement.nextElementSibling.textContent =
+      "Mỗi câu có 4 đáp án từ tài liệu. Chọn một đáp án đúng; có thể dùng phím 1–4.";
   }
   updateQuizSelection();
 }
@@ -2174,7 +2383,6 @@ function sound(correct) {
   }
 }
 function startQuiz(overrideCards = null, replayConfig = null) {
-  if (readQuizDraft(deck()) && !confirm('Bộ này có bài đang làm dở. Bắt đầu bài mới sẽ thay thế bài dở. Tiếp tục?')) return;
   if (replayConfig) setup = structuredClone(replayConfig);
   else readSetup();
   const d = deck(),
@@ -2189,7 +2397,6 @@ function startQuiz(overrideCards = null, replayConfig = null) {
     cards = cards.slice(0, Number(config.count));
   const all = originalCards(d),
     questions = cards.map((c) => {
-      if (c.type === "short-answer") return {card:c, direction:"forward", format:"typing", options:null, fallback:false};
       if (c.options)
         return {
           card: c,
@@ -2224,7 +2431,6 @@ function startQuiz(overrideCards = null, replayConfig = null) {
   stopTimers();
   prepareAudio();
   quiz = {
-    deckId: d.id,
     runId: uid(),
     config,
     cards,
@@ -2255,64 +2461,6 @@ function startQuiz(overrideCards = null, replayConfig = null) {
 function question() {
   return quiz.questions[quiz.index];
 }
-let lastDraftSave = 0;
-function saveQuizDraft() {
-  if (!quiz || quiz.saved || loadBlocked || !quiz.deckId) return;
-  const state = structuredClone(quiz);
-  state.typedAnswer = $('#quiz-answer-input')?.value ?? quiz.typedAnswer ?? '';
-  state.cards = quiz.cards.map(c=>c.id);
-  state.pool = quiz.pool.map(c=>c.id);
-  state.questions = quiz.questions.map(q=>({...q,card:q.card.id}));
-  state.paused = true;
-  state.lastTick = 0;
-  const value = JSON.stringify({version:1, savedAt:new Date().toISOString(), state});
-  writer.put(StorageModel.key('session',quiz.deckId),()=>value);
-  lastDraftSave = performance.now();
-}
-function readQuizDraft(d) {
-  try {
-    const raw = storagePort.getItem(StorageModel.key('session',d.id));
-    if (!raw) return null;
-    const data = JSON.parse(raw), s = data.state;
-    if (data.version !== 1 || !s || s.deckId !== d.id || s.saved || typeof s.runId !== 'string' ||
-        !Array.isArray(s.cards) || !s.cards.length || !Array.isArray(s.pool) ||
-        !Array.isArray(s.questions) || !s.questions.length || !Number.isInteger(s.index) || s.index < 0 || s.index >= s.questions.length ||
-        !s.config || !Array.isArray(s.config.scopes) || !Array.isArray(s.results) || !Array.isArray(s.retryResults) ||
-        !Array.isArray(s.inventory) || !Array.isArray(s.bots) || !Array.isArray(s.hidden) || !s.used ||
-        typeof s.answered !== 'boolean' || (s.answered && !s.feedback) ||
-        !['score','streak','maxStreak','remaining','budget','elapsed'].every(k=>Number.isFinite(s[k]) && s[k]>=0)) throw Error('Invalid session');
-    const cards = new Map(originalCards(d).map(c=>[c.id,c]));
-    if (![...s.cards,...s.pool,...s.questions.map(q=>q.card)].every(id=>cards.has(id)) ||
-        !s.questions.every(q=>['forward','reverse'].includes(q.direction) && ['choice','typing'].includes(q.format) &&
-          (q.format==='typing' || (Array.isArray(q.options) && q.options.length>=2 && q.options.every(o=>typeof o==='string'))))) throw Error('Changed content');
-    s.cards=s.cards.map(id=>cards.get(id));s.pool=s.pool.map(id=>cards.get(id));
-    s.questions=s.questions.map(q=>({...q,card:cards.get(q.card)}));
-    return {state:s,savedAt:data.savedAt};
-  } catch { return {invalid:true}; }
-}
-function draftHTML(d) {
-  const draft = readQuizDraft(d);
-  if (!draft) return '';
-  const s=draft.state;
-  return `<section class="panel quiz-draft"><div><span class="eyebrow">BÀI ĐANG LÀM DỞ</span><h3>${esc(d.name)}</h3><p>${draft.invalid ? 'Nội dung bộ học đã thay đổi hoặc phiên lưu không còn hợp lệ. Hãy xóa phiên này để bắt đầu lại.' : `Đã trả lời ${s.results.length}/${s.cards.length} câu · Đang ở lượt ${s.index+1}/${s.questions.length} · ${s.score.toLocaleString('vi-VN')} điểm`}</p>${!draft.invalid ? `<div class="progress"><i style="width:${Math.min(100,s.results.length/s.cards.length*100)}%"></i></div>`:''}</div><div class="row">${!draft.invalid?button('continue-quiz-draft','Làm tiếp','primary',`data-id="${d.id}"`):''}${button('delete-quiz-draft','Xóa bài dở','danger',`data-id="${d.id}"`)}</div></section>`;
-}
-function deleteQuizDraft(id) {
-  const key=StorageModel.key('session',id);
-  writer.discard([key]);
-  return removeStorage(key);
-}
-function continueQuizDraft(id) {
-  const d=store.decks.find(d=>d.id===id), draft=d&&readQuizDraft(d);
-  if (!draft || draft.invalid) {toast('Không thể tiếp tục phiên này. Hãy xóa bài dở và bắt đầu lại.');return;}
-  if (!leaveSession()) return;
-  store.activeDeckId=id;save('meta');
-  quiz=draft.state;setup=structuredClone(quiz.config);
-  quiz.paused=false;quiz.lastTick=performance.now();
-  view='quiz';prepareAudio();render();
-  if ($('#quiz-answer-input')) $('#quiz-answer-input').value=quiz.typedAnswer || '';
-  if (!quiz.answered) timer=setInterval(tickQuiz,100);
-  scrollTo({top:0});
-}
 function beginQuestion() {
   stopTimers();
   quiz.answered = false;
@@ -2327,9 +2475,7 @@ function beginQuestion() {
   quiz.second = false;
   quiz.retryMessage = "";
   quiz.feedback = null;
-  quiz.typedAnswer = '';
   render();
-  saveQuizDraft();
   timer = setInterval(tickQuiz, 100);
 }
 function tickQuiz() {
@@ -2341,7 +2487,6 @@ function tickQuiz() {
   if (Number(quiz.config.time) > 0)
     quiz.remaining = Math.max(0, quiz.remaining - delta);
   updateTimer();
-  if (now-lastDraftSave >= 5000) saveQuizDraft();
   if (Number(quiz.config.time) > 0 && quiz.remaining <= 0)
     submitQuiz("", true, true);
 }
@@ -2407,12 +2552,12 @@ function renderQuiz() {
     prompt = isWord ? c.word : c.meaning,
     expected = isWord ? c.meaning : c.word;
   $("#main").innerHTML =
-    `<div class="quiz-play"><div class="quiz-toolbar"><div class="row"><span class="pill quiz-pill">✦ Quiz thử thách</span><strong>${quiz.index + 1} / ${quiz.questions.length}</strong></div><div class="row">${button("quiz-sound", store.settings.sound ? "♫ Âm thanh bật" : "♪ Âm thanh tắt", "small", `aria-pressed="${store.settings.sound}"`)}${button("pause-quiz", "Ⅱ Tạm dừng", "small", quiz.answered ? "disabled" : "")}${button("exit-study", icon("close"), "small", 'aria-label="Thoát quiz"')}</div></div><div class="game-hud"><div><small>ĐIỂM CỦA BẠN</small><strong>${quiz.score.toLocaleString("vi-VN")}</strong></div><div><small>CHUỖI ĐÚNG</small><strong>🔥 ${quiz.streak}</strong></div><div><small>THỜI GIAN</small><strong id="timer-text"></strong></div></div><div class="timer-bar" id="quiz-timer" role="progressbar" aria-label="Giây còn lại" aria-valuemin="0" aria-valuemax="${quiz.budget / 1000 || 1}"><i id="timer-fill"></i></div><div class="quiz-game-grid"><section class="panel quiz-panel"><div class="row spread"><span class="muted">${c.type === "short-answer" ? "Nhập câu trả lời ngắn" : c.type === "true-false" ? "Chọn True (Đúng) hoặc False (Sai)" : c.options ? "Chọn một đáp án đúng" : isWord ? "Chọn hoặc nhập nghĩa của từ" : "Tìm từ tương ứng với nghĩa"}</span><div class="row">${starButton(c.id)}${isWord ? speaker(c.id) : ""}</div></div>${q.repeat ? '<p class="notice" role="status">↻ Ôn lại câu đã sai · Không cộng điểm</p>' : ""}${q.fallback ? '<p class="notice">Chưa đủ 4 đáp án khác nhau; câu này chuyển sang gõ.</p>' : ""}<div class="quiz-prompt">${isWord ? "<div>" + badges(c.pos) + "</div>" : ""}${esc(prompt)}</div>${
+    `<div class="quiz-play"><div class="quiz-toolbar"><div class="row"><span class="pill quiz-pill">✦ Quiz thử thách</span><strong>${quiz.index + 1} / ${quiz.questions.length}</strong></div><div class="row">${button("quiz-sound", store.settings.sound ? "♫ Âm thanh bật" : "♪ Âm thanh tắt", "small", `aria-pressed="${store.settings.sound}"`)}${button("pause-quiz", "Ⅱ Tạm dừng", "small", quiz.answered ? "disabled" : "")}${button("exit-study", icon("close"), "small", 'aria-label="Thoát quiz"')}</div></div><div class="game-hud"><div><small>ĐIỂM CỦA BẠN</small><strong>${quiz.score.toLocaleString("vi-VN")}</strong></div><div><small>CHUỖI ĐÚNG</small><strong>🔥 ${quiz.streak}</strong></div><div><small>THỜI GIAN</small><strong id="timer-text"></strong></div></div><div class="timer-bar" id="quiz-timer" role="progressbar" aria-label="Giây còn lại" aria-valuemin="0" aria-valuemax="${quiz.budget / 1000 || 1}"><i id="timer-fill"></i></div><div class="quiz-game-grid"><section class="panel quiz-panel"><div class="row spread"><span class="muted">${c.options ? "Chọn một đáp án đúng" : isWord ? "Chọn hoặc nhập nghĩa của từ" : "Tìm từ tương ứng với nghĩa"}</span><div class="row">${starButton(c.id)}${isWord ? speaker(c.id) : ""}</div></div>${q.repeat ? '<p class="notice" role="status">↻ Ôn lại câu đã sai · Không cộng điểm</p>' : ""}${q.fallback ? '<p class="notice">Chưa đủ 4 đáp án khác nhau; câu này chuyển sang gõ.</p>' : ""}<div class="quiz-prompt">${isWord ? "<div>" + badges(c.pos) + "</div>" : ""}${esc(prompt)}</div>${
       q.format === "choice"
         ? `<div class="answers game-answers">${q.options
             .map((option, i) => {
               const result = quiz.feedback;
-              return `<button class="btn answer option-${i} ${quiz.answered ? (option === expected ? "correct" : option === result?.answer ? "wrong" : "") : ""}" data-action="quiz-answer" data-index="${i}" ${quiz.answered || quiz.hidden.includes(i) ? "disabled" : ""}><span class="shape">${c.options ? (c.type === "true-false" ? "TF"[i] : "ABCD"[i]) : ["▲", "◆", "●", "■"][i]}</span><span>${quiz.hidden.includes(i) ? "Đã loại" : esc(option)}</span><kbd>${i + 1}</kbd>${quiz.answered && option === expected ? '<span aria-label="Đáp án đúng">✓</span>' : ""}${quiz.answered && option !== expected && option === result?.answer ? '<span aria-label="Đáp án sai">✕</span>' : ""}</button>`;
+              return `<button class="btn answer option-${i} ${quiz.answered ? (option === expected ? "correct" : option === result?.answer ? "wrong" : "") : ""}" data-action="quiz-answer" data-index="${i}" ${quiz.answered || quiz.hidden.includes(i) ? "disabled" : ""}><span class="shape">${c.options ? "ABCD"[i] : ["▲", "◆", "●", "■"][i]}</span><span>${quiz.hidden.includes(i) ? "Đã loại" : esc(option)}</span><kbd>${i + 1}</kbd>${quiz.answered && option === expected ? '<span aria-label="Đáp án đúng">✓</span>' : ""}${quiz.answered && option !== expected && option === result?.answer ? '<span aria-label="Đáp án sai">✕</span>' : ""}</button>`;
             })
             .join("")}</div>`
         : `<form id="quiz-answer-form" class="quiz-form"><label for="quiz-answer-input">Câu trả lời của bạn</label><input id="quiz-answer-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" ${quiz.answered ? "disabled" : ""} value="${esc(quiz.feedback?.answer || "")}" placeholder="Gõ đáp án…"><small>Không phân biệt hoa/thường hoặc khoảng trắng thừa.${!isWord ? " Chấp nhận một biến thể được ngăn bằng dấu /." : ""}</small>${!quiz.answered ? '<button class="btn primary" type="submit">Trả lời ↵</button>' : ""}</form>`
@@ -2457,7 +2602,6 @@ function submitQuiz(answer, timeout = false, alreadyTicked = false) {
       if (index >= 0) quiz.hidden.push(index);
     }
     renderQuiz();
-    saveQuizDraft();
     return;
   }
   stopTimers();
@@ -2519,7 +2663,6 @@ function submitQuiz(answer, timeout = false, alreadyTicked = false) {
   save("stats");
   sound(correct);
   renderQuiz();
-  saveQuizDraft();
   if (quiz.config.auto)
     autoTimer = setTimeout(() => {
       autoTimer = null;
@@ -2564,14 +2707,12 @@ function usePower(index) {
   else if (type === "second") quiz.second = true;
   renderQuiz();
   if ($("#quiz-answer-input")) $("#quiz-answer-input").value = typed;
-  saveQuizDraft();
 }
 function pauseQuiz() {
   if (view !== "quiz" || !quiz || quiz.paused || quiz.answered) return;
   tickQuiz();
   if (quiz.answered) return;
   quiz.paused = true;
-  saveQuizDraft();
   stopTimers();
   $("#quiz-private").textContent = "";
   $("#main").classList.add("paused-content");
@@ -2613,8 +2754,6 @@ function finishQuiz() {
     save("stats");
   }
   view = "quiz-result";
-  deleteQuizDraft(quiz.deckId);
-  flushStorage();
   render();
   scrollTo({ top: 0 });
 }
@@ -2723,27 +2862,6 @@ document.addEventListener("click", (event) => {
     setNavigationOpen(b.getAttribute("aria-expanded") !== "true");
     return;
   }
-  if (a === 'create-manual-deck' || a === 'add-manual-card' || a === 'manage-cards') {
-    if (!leaveSession()) return;
-    if (a === 'manage-cards') showManageCards();
-    else showManualCard(a === 'create-manual-deck');
-    return;
-  }
-  if (a === 'remove-import-question') {removeImportQuestion(Number(b.dataset.index));return;}
-  if (a === 'continue-quiz-draft') {continueQuizDraft(id);return;}
-  if (a === 'delete-quiz-draft') {
-    if (confirm('Xóa bài trắc nghiệm đang làm dở? Bộ câu hỏi và các kết quả đã hoàn thành vẫn được giữ.')) {
-      if (deleteQuizDraft(id)) {render();toast('Đã xóa bài dở.');}
-      else toast('Chưa xóa được bài dở trên trình duyệt.');
-    }
-    return;
-  }
-  if (a === 'delete-managed-cards') {deleteManagedCards();return;}
-  if (a === 'select-managed-cards') {
-    const boxes=[...document.querySelectorAll('.manage-card:not([hidden]) [data-manage-card]')];
-    const checked=boxes.some(el=>!el.checked);for (const el of boxes) el.checked=checked;
-    updateManageSelection();return;
-  }
   if (["decks", "library", "hard", "stats", "quiz-setup"].includes(a)) {
     navigate(a);
     return;
@@ -2796,6 +2914,41 @@ document.addEventListener("click", (event) => {
   }
   if (a === "open-deck") {
     openDeck(id);
+    return;
+  }
+  if (a === "open-deck-flash") {
+    if (!leaveSession()) return;
+    store.activeDeckId = id;
+    save("meta");
+    const d = deck();
+    startFlash(originalCards(d), d.name);
+    return;
+  }
+  if (a === "start-flash-from-quiz") {
+    if (!leaveSession()) return;
+    const cards = setupCards().length ? setupCards() : originalCards(deck());
+    startFlash(cards, deck().name);
+    return;
+  }
+  if (a === "start-flash-all") {
+    if (!leaveSession()) return;
+    const cards = originalCards(deck());
+    startFlash(cards, deck().name);
+    return;
+  }
+  if (a === "save-quiz-as-flash") {
+    const form = $("#quiz-import-form");
+    if (form && !form.reportValidity()) return;
+    commitQuizImport("flashcard");
+    return;
+  }
+  if (a === "remove-import-question") {
+    syncQuizPreviewInputs();
+    const qIdx = Number(id);
+    if (pending?.parsed?.questions && qIdx >= 0 && qIdx < pending.parsed.questions.length) {
+      pending.parsed.questions.splice(qIdx, 1);
+      showQuizPreview();
+    }
     return;
   }
   if (a === "group") {
@@ -2933,8 +3086,6 @@ document.addEventListener("click", (event) => {
 document.addEventListener("change", (event) => {
   const el = event.target;
   if (!unlocked) return;
-  if (el.id === 'manual-type') {renderManualAnswerFields();return;}
-  if (el.matches('[data-manage-card]')) {updateManageSelection();return;}
   if (el.id === "quiz-file-input") importQuizFile(el.files[0]);
   else if (el.id === "file-input") processUploadedFile(el.files[0]);
   else if (el.id === "backup-input") importBackup(el.files[0]);
@@ -2948,6 +3099,18 @@ document.addEventListener("change", (event) => {
     updateSelection();
   } else if (el.name === "organization")
     $("#dedupe").disabled = el.value === "split";
+  else if (el.name === "quiz-target-mode") {
+    const btn = $("#quiz-import-submit-btn");
+    if (btn) {
+      if (el.value === "flashcard") {
+        btn.innerHTML = icon("flip") + " Lưu &amp; Bắt đầu Flashcard";
+      } else if (el.value === "both") {
+        btn.innerHTML = icon("book") + " Lưu &amp; Mở thư viện học";
+      } else {
+        btn.textContent = "Lưu bộ câu hỏi và luyện quiz";
+      }
+    }
+  }
   else if (el.id === "deck-language")
     $("#custom-language-label").hidden = el.value !== "other";
   else if (el.id === "library-deck") switchLibraryDeck(el.value);
@@ -2973,7 +3136,7 @@ document.addEventListener("change", (event) => {
         const isSel = p.dataset.optionLabel === val;
         p.classList.toggle("quiz-answer-highlight", isSel);
         const lbl = p.dataset.optionLabel;
-        const txt = p.textContent.replace(/^[A-DFT]\.\s*/, "").trim();
+        const txt = p.textContent.replace(/^[A-D]\.\s*/, "").trim();
         p.innerHTML = isSel
           ? `<strong>${lbl}. ${esc(txt)}</strong>`
           : `${lbl}. ${esc(txt)}`;
@@ -2987,14 +3150,6 @@ document.addEventListener("input", (event) => {
     renderSearch();
   }
 });
-document.addEventListener('input', (event) => {
-  if (unlocked && event.target.id === 'quiz-answer-input') {
-    quiz.typedAnswer=event.target.value;saveQuizDraft();return;
-  }
-  if (!unlocked || event.target.id !== 'manage-search') return;
-  const query=Core.normalize(event.target.value);
-  for (const row of document.querySelectorAll('.manage-card')) row.hidden=!row.dataset.search.includes(query);
-});
 document.addEventListener("submit", (event) => {
   event.preventDefault();
   const id = event.target.id;
@@ -3004,7 +3159,6 @@ document.addEventListener("submit", (event) => {
   }
   if (!unlocked) return;
   if (id === "quiz-import-form") commitQuizImport();
-  else if (id === 'manual-card-form') commitManualCard(event.submitter?.value === 'more');
   else if (id === "import-form") commitImport();
   else if (id === "settings-form") saveDeckSettings();
   else if (id === "quiz-answer-form") submitQuiz($("#quiz-answer-input").value);
@@ -3081,12 +3235,10 @@ $("#dialog").addEventListener("cancel", (e) => {
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
     if (view === "quiz" && !quiz?.answered) pauseQuiz();
-    saveQuizDraft();
     flushStorage();
   }
 });
 window.addEventListener("pagehide", () => {
-  saveQuizDraft();
   flushStorage();
   stopTimers();
   if ("speechSynthesis" in window) speechSynthesis.cancel();

@@ -283,6 +283,397 @@ const Core = (() => {
       warnings,
     };
   }
+  function normalizePos(raw) {
+    if (!raw) return "";
+    let p = String(raw).trim();
+    if (!p) return "";
+    if (/^\(.*\)$/.test(p)) return p;
+    const map = {
+      "động từ": "(v)",
+      "verb": "(v)",
+      "v": "(v)",
+      "danh từ": "(n)",
+      "noun": "(n)",
+      "n": "(n)",
+      "tính từ": "(adj)",
+      "adjective": "(adj)",
+      "adj": "(adj)",
+      "trạng từ": "(adv)",
+      "phó từ": "(adv)",
+      "adverb": "(adv)",
+      "adv": "(adv)",
+      "giới từ": "(prep)",
+      "preposition": "(prep)",
+      "prep": "(prep)",
+      "đại từ": "(pron)",
+      "pronoun": "(pron)",
+      "pron": "(pron)",
+      "liên từ": "(conj)",
+      "conjunction": "(conj)",
+      "conj": "(conj)",
+      "thán từ": "(interj)",
+      "interjection": "(interj)",
+      "interj": "(interj)",
+      "cụm từ": "(phr)",
+      "cụm": "(phr)",
+      "phrase": "(phr)",
+      "phr": "(phr)",
+      "thành ngữ": "(idiom)",
+      "idiom": "(idiom)",
+      "n/v": "(n/v)",
+      "v/n": "(n/v)",
+    };
+    const lower = p.toLowerCase();
+    if (map[lower]) return map[lower];
+    if (/[,/]/.test(p)) {
+      const parts = p.split(/[,/]/).map((s) => s.trim()).filter(Boolean);
+      return parts
+        .map((part) => map[part.toLowerCase()] || `(${part})`)
+        .join(" ");
+    }
+    return `(${p})`;
+  }
+  function parseCsv(text) {
+    if (!text) return [];
+    const firstLine = text.split(/\r?\n/)[0] || "";
+    let delimiter = ",";
+    const commas = (firstLine.match(/,/g) || []).length;
+    const tabs = (firstLine.match(/\t/g) || []).length;
+    const semis = (firstLine.match(/;/g) || []).length;
+    if (tabs > commas && tabs > semis) delimiter = "\t";
+    else if (semis > commas && semis > tabs) delimiter = ";";
+
+    const rows = [];
+    let row = [];
+    let curr = "";
+    let inQuotes = false;
+    let i = 0;
+    while (i < text.length) {
+      const char = text[i];
+      if (inQuotes) {
+        if (char === '"') {
+          if (i + 1 < text.length && text[i + 1] === '"') {
+            curr += '"';
+            i += 2;
+            continue;
+          } else {
+            inQuotes = false;
+            i++;
+            continue;
+          }
+        } else {
+          curr += char;
+          i++;
+          continue;
+        }
+      } else {
+        if (char === '"') {
+          inQuotes = true;
+          i++;
+          continue;
+        } else if (char === delimiter) {
+          row.push(curr.trim());
+          curr = "";
+          i++;
+          continue;
+        } else if (char === "\r") {
+          if (i + 1 < text.length && text[i + 1] === "\n") i++;
+          row.push(curr.trim());
+          curr = "";
+          rows.push(row);
+          row = [];
+          i++;
+          continue;
+        } else if (char === "\n") {
+          row.push(curr.trim());
+          curr = "";
+          rows.push(row);
+          row = [];
+          i++;
+          continue;
+        } else {
+          curr += char;
+          i++;
+          continue;
+        }
+      }
+    }
+    if (curr.length > 0 || row.length > 0) {
+      row.push(curr.trim());
+      rows.push(row);
+    }
+    return rows.filter((r) => r.some((cell) => cell.length > 0));
+  }
+  function detectSpreadsheetColumns(headerRow, sampleRows = []) {
+    let colStt = -1,
+      colWord = -1,
+      colPos = -1,
+      colMeaning = -1,
+      colExample = -1;
+
+    const normH = (s) => normalize(s).replace(/[:：]/g, "");
+
+    if (headerRow && headerRow.length >= 2) {
+      headerRow.forEach((h, idx) => {
+        const norm = normH(h);
+        if (/^(stt|no|no\.|số\s*thứ\s*tự|#|index|order|id)$/i.test(norm)) {
+          colStt = idx;
+        } else if (
+          /^(từ\s*vựng|từ|word|words|vocabulary|vocab|term|tiếng\s*anh|thuật\s*ngữ)$/i.test(
+            norm,
+          )
+        ) {
+          colWord = idx;
+        } else if (
+          /^(dạng\s*từ|loại\s*từ|từ\s*loại|pos|part\s*of\s*speech|type|form|word\s*class)$/i.test(
+            norm,
+          )
+        ) {
+          colPos = idx;
+        } else if (
+          /^(nghĩa|ý\s*nghĩa|meaning|meanings|definition|dịch|tiếng\s*việt|nghĩa\s*tiếng\s*việt|giải\s*thích)$/i.test(
+            norm,
+          )
+        ) {
+          colMeaning = idx;
+        } else if (
+          /^(ví\s*dụ|câu\s*ví\s*dụ|example|examples|sentence|sentences|ghi\s*chú|note|notes|câu)$/i.test(
+            norm,
+          )
+        ) {
+          colExample = idx;
+        }
+      });
+    }
+
+    const hasDetectedHeaders = colWord !== -1 && colMeaning !== -1;
+    if (!hasDetectedHeaders) {
+      const allRows = [headerRow, ...sampleRows].filter(Boolean);
+      const maxCols = Math.max(0, ...allRows.map((r) => r.length));
+      const isCol0Numeric =
+        sampleRows.length > 0 &&
+        sampleRows
+          .slice(0, 5)
+          .every((r) => /^\d+$/.test((r[0] || "").trim()));
+
+      if (maxCols >= 5) {
+        if (isCol0Numeric) {
+          colStt = 0;
+          colWord = 1;
+          colPos = 2;
+          colMeaning = 3;
+          colExample = 4;
+        } else {
+          colWord = 0;
+          colPos = 1;
+          colMeaning = 2;
+          colExample = 3;
+        }
+      } else if (maxCols === 4) {
+        if (isCol0Numeric) {
+          colStt = 0;
+          colWord = 1;
+          colMeaning = 2;
+          colExample = 3;
+        } else {
+          colWord = 0;
+          colPos = 1;
+          colMeaning = 2;
+          colExample = 3;
+        }
+      } else if (maxCols === 3) {
+        colWord = 0;
+        colMeaning = 1;
+        colExample = 2;
+      } else {
+        colWord = 0;
+        colMeaning = 1;
+      }
+    }
+
+    return {
+      colStt,
+      colWord,
+      colPos,
+      colMeaning,
+      colExample,
+      hasDetectedHeaders,
+    };
+  }
+  function parseSpreadsheet(sheets, fileName = "Từ vựng.xlsx") {
+    const chapters = [],
+      warnings = [];
+    let count = 0;
+    const names = new Map();
+
+    const cleanBaseName =
+      fileName.replace(/\.(xlsx|xls|csv)$/i, "") || "Bộ từ vựng";
+    const multiSheets = sheets.length > 1;
+
+    for (let sIdx = 0; sIdx < sheets.length; sIdx++) {
+      const sheet = sheets[sIdx];
+      const sheetName = (sheet.name || `Sheet${sIdx + 1}`).trim();
+      const rawRows = (sheet.rows || []).filter(
+        (r) => r && r.some((c) => String(c).trim().length > 0),
+      );
+      if (!rawRows.length) continue;
+
+      let headerRowIndex = -1;
+      let detected = null;
+      const searchLimit = Math.min(rawRows.length, 10);
+      for (let i = 0; i < searchLimit; i++) {
+        const det = detectSpreadsheetColumns(
+          rawRows[i],
+          rawRows.slice(i + 1, i + 6),
+        );
+        if (det.hasDetectedHeaders) {
+          headerRowIndex = i;
+          detected = det;
+          break;
+        }
+      }
+
+      if (headerRowIndex === -1) {
+        detected = detectSpreadsheetColumns(null, rawRows.slice(0, 5));
+        headerRowIndex = -1;
+      }
+
+      const { colWord, colPos, colMeaning, colExample } = detected;
+      if (colWord === -1 || colMeaning === -1) {
+        warnings.push(
+          `Sheet "${sheetName}": không tìm thấy cột Từ vựng hoặc Nghĩa.`,
+        );
+        continue;
+      }
+
+      const chapterName = multiSheets ? sheetName : cleanBaseName;
+      const normChapter = normalize(chapterName);
+      const occurrence = names.get(normChapter) || 0;
+      names.set(normChapter, occurrence + 1);
+
+      const chapter = {
+        id: "c" + hash(normChapter + "|" + occurrence),
+        name: chapterName,
+        sections: [],
+      };
+
+      const sectionName = multiSheets
+        ? "Từ vựng"
+        : /^sheet\s*\d+$/i.test(sheetName)
+          ? "Từ vựng chung"
+          : sheetName;
+      const section = {
+        id: "s" + hash(chapter.id + "|" + normalize(sectionName) + "|0"),
+        name: sectionName,
+        cards: [],
+      };
+      chapter.sections.push(section);
+
+      function addSpreadsheetCard(rawWord, rawPos, rawMeaning, rawExample) {
+        const split = splitWord(rawWord);
+        const defSplit = splitWord(rawMeaning);
+        const cleanWord = split.word;
+        const cleanMeaning = defSplit.word;
+        if (!cleanWord || !cleanMeaning) return false;
+
+        const posVal = rawPos
+          ? normalizePos(rawPos)
+          : split.pos || defSplit.pos;
+        const note = rawExample ? String(rawExample).trim() : "";
+
+        const words = cleanWord.split(/\s*(?:><|<>|≠|↔)\s*/);
+        const meanings = cleanMeaning.split(/\s*(?:><|<>|≠|↔)\s*/);
+        if (
+          words.length === 2 &&
+          meanings.length === 2 &&
+          words.every(Boolean) &&
+          meanings.every(Boolean)
+        ) {
+          words.forEach((w, idx) => {
+            const cPos = posVal;
+            section.cards.push({
+              id: cardId(w, meanings[idx]),
+              word: w,
+              pos: cPos,
+              meaning: meanings[idx],
+              note: [
+                note,
+                "Đối nghĩa: " + words[1 - idx] + " — " + meanings[1 - idx],
+              ]
+                .filter(Boolean)
+                .join("\n"),
+              originalWord: cPos ? `${cPos} ${w}` : w,
+            });
+            count++;
+          });
+          return true;
+        }
+
+        const cPos = posVal || "";
+        section.cards.push({
+          id: cardId(cleanWord, cleanMeaning),
+          word: cleanWord,
+          pos: cPos,
+          meaning: cleanMeaning,
+          note,
+          originalWord: cPos ? `${cPos} ${cleanWord}` : cleanWord,
+        });
+        count++;
+        return true;
+      }
+
+      const startIdx = headerRowIndex >= 0 ? headerRowIndex + 1 : 0;
+      for (let rIdx = startIdx; rIdx < rawRows.length; rIdx++) {
+        const row = rawRows[rIdx];
+        const rowDisplayNum = rIdx + 1;
+        const rawW = String(
+          colWord >= 0 && row[colWord] != null ? row[colWord] : "",
+        ).trim();
+        const rawP = String(
+          colPos >= 0 && row[colPos] != null ? row[colPos] : "",
+        ).trim();
+        const rawM = String(
+          colMeaning >= 0 && row[colMeaning] != null ? row[colMeaning] : "",
+        ).trim();
+        const rawE = String(
+          colExample >= 0 && row[colExample] != null ? row[colExample] : "",
+        ).trim();
+
+        if (!rawW && !rawM) continue;
+
+        if (!rawW || !rawM) {
+          warnings.push(
+            `Sheet "${sheetName}", dòng ${rowDisplayNum}: thiếu từ vựng hoặc nghĩa; đã bỏ qua.`,
+          );
+          continue;
+        }
+
+        addSpreadsheetCard(rawW, rawP, rawM, rawE);
+      }
+
+      if (section.cards.length > 0) {
+        chapters.push(chapter);
+      } else {
+        warnings.push(
+          `Sheet "${sheetName}": không có dòng từ vựng hợp lệ nào.`,
+        );
+      }
+    }
+
+    if (!count) {
+      throw Error(
+        "File Excel không có dòng từ vựng hợp lệ. Bảng cần có các cột Từ vựng, Dạng từ, Nghĩa, Ví dụ (hoặc Từ và Nghĩa).",
+      );
+    }
+
+    return {
+      name: cleanBaseName,
+      sourceName: fileName,
+      hasChapters: chapters.length > 1,
+      chapters,
+      warnings,
+    };
+  }
   const questionId = (word, options, answer) =>
     "q" +
     hash(JSON.stringify([normalize(word), options.map(normalize), answer]));
@@ -967,5 +1358,9 @@ const Core = (() => {
     scopeKey,
     inheritProgress,
     validateBackup,
+    normalizePos,
+    parseCsv,
+    detectSpreadsheetColumns,
+    parseSpreadsheet,
   };
 })();

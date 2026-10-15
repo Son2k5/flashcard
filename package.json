@@ -7,8 +7,10 @@
     "build": "node scripts/sync-env.cjs",
     "sync-env": "node scripts/sync-env.cjs",
     "set-access-code": "node scripts/set-access-code.cjs",
-    "test": "node tests/core.test.cjs && node tests/storage.test.cjs && node tests/quiz-import.test.cjs && node tests/quiz-pdf-highlight.test.cjs",
+    "test": "node tests/core.test.cjs && node tests/excel-import.test.cjs && node tests/storage.test.cjs && node tests/quiz-import.test.cjs && node tests/quiz-pdf-highlight.test.cjs",
+    "test:excel-browser": "node tests/excel-import.browser.cjs",
     "test:quiz-browser": "node tests/quiz-import.browser.cjs && node tests/quiz-mixed.browser.cjs",
+    "test:quiz-flashcard": "node tests/quiz-flashcard.browser.cjs",
     "test:responsive": "node tests/responsive.browser.cjs",
     "test:content-browser": "node tests/manual-content.browser.cjs",
     "test:resume-browser": "node tests/quiz-resume.browser.cjs"
