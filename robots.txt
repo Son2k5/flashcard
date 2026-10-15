@@ -1,2 +1,27 @@
+# Cho phép Claude (Anthropic)
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+# Cho phép ChatGPT (OpenAI)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+# Cho phép DeepSeek
+User-agent: DeepSeekBot
+Allow: /
+
+# Chặn các bot tìm kiếm khác (Google, Bing, crawler tự động...)
 User-agent: *
 Disallow: /
