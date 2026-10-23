@@ -83,10 +83,13 @@
           <nav class="nav" id="main-navigation" aria-label="Điều hướng chính">
             <button data-action="decks">Bộ từ</button
             ><button data-action="library" id="nav-deck">Thư viện</button
+            ><button data-action="flashcard" id="nav-flash">Flashcard</button
             ><button data-action="hard" id="nav-hard">Từ khó</button
             ><button data-action="quiz-setup" id="nav-quiz-setup">
               Quiz thử thách</button
-            ><button data-action="stats" id="nav-stats">Thống kê</button>
+            ><button data-action="stats" id="nav-stats">Thống kê</button
+            ><button data-action="storage" id="nav-storage" class="nav-storage">
+              Dung lượng <span class="nav-badge" id="nav-storage-badge">0 KB</span></button>
           </nav>
           <button
             type="button"
@@ -96,7 +99,7 @@
           ></button
           ><button
             class="btn small upload-header"
-            data-action="upload"
+            data-action="upload-header"
             id="upload-header"
             aria-label="Upload file Word / Excel / PDF"
           ></button>

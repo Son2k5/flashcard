@@ -1,5 +1,5 @@
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),http=require('node:http'),{DOMParser}=require('linkedom');
-const html=require('./helpers/app.cjs').readAppHtml(),Core=new Function('DOMParser',html.match(/<script id="core">([\s\S]*?)<\/script>/)[1]+';return Core;')(DOMParser),hash=html.match(/const ACCESS_HASH='([a-f0-9]+)'/)[1];
+const html=require('./helpers/app.cjs').readAppHtml(),Core=new Function('DOMParser',html.match(/<script id="core">([\s\S]*?)<\/script>/)[1]+';return Core;')(DOMParser),hash=html.match(/const ACCESS_HASH\s*=\s*'([a-f0-9]+)'/)[1];
 const questions=Array.from({length:4},(_,i)=>({word:'Question '+i,options:['A','B','C','D'].map(label=>({label,text:label+i})),answer:'B',note:'',issues:[]}));
 const deck={id:'repeat-test',kind:'quiz',name:'Repeat test',language:'vi-VN',hasChapters:false,chapters:Core.questionChapters(questions),organization:{mode:'merged',dedupe:false},progress:{},activity:[],records:{},quizMemory:{}};
 const fixture={app:'la-vocab',version:2,decks:[deck],activeDeckId:deck.id,settings:{theme:'light',sound:false}};

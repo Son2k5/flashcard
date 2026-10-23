@@ -1,6 +1,6 @@
 const {chromium}=require('playwright'), JSZip=require('jszip');
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),http=require('node:http');
-const root=path.join(__dirname,'..'),html=require('./helpers/app.cjs').readAppHtml(),hash=html.match(/const ACCESS_HASH='([a-f0-9]+)'/)[1];
+const root=path.join(__dirname,'..'),html=require('./helpers/app.cjs').readAppHtml(),hash=html.match(/const ACCESS_HASH\s*=\s*'([a-f0-9]+)'/)[1];
 const server=http.createServer((req,res)=>{const file=path.join(root,req.url==='/'?'index.html':req.url);res.setHeader('Content-Type',/\.m?js$/.test(file)?'text/javascript':/\.css$/.test(file)?'text/css':'text/html; charset=utf-8');res.end(fs.readFileSync(file));});
 (async()=>{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -21,6 +21,43 @@ const server=http.createServer((req,res)=>{const file=path.join(root,req.url==='
   await page.locator('#quiz-next').click();assert.equal(await page.locator('[data-action="quiz-answer"]').count(),4);await page.locator(`[data-action="quiz-answer"][data-index="${await page.evaluate(()=>question().options.findIndex(v=>v === question().card.meaning))}"]`).click();assert.equal(await page.evaluate(()=>quiz.feedback.correct),true);await page.locator('#quiz-next').click();
   await page.reload();assert.deepEqual(await page.evaluate(()=>Core.flatten(deck().chapters).map(c=>c.type)),['true-false','short-answer','multiple-choice']);
   assert.equal(await page.evaluate(()=>StorageModel.migrate(StorageModel.backup(store)).decks[0].chapters[0].sections[0].cards[1].answer),'Earth');
+  // Create and convert questions through the actual editor controls.
+  await page.evaluate(()=>createManualDeck('quiz'));
+  await page.locator('#edit-deck-name').fill('Manual mixed quiz');
+  const row = i => page.locator(`[data-edit-card="${i}"]`);
+  await row(0).locator('[data-field="word"]').fill('Earth is a planet.');
+  await row(0).locator('[data-field="note"]').fill('Keep this explanation');
+  await row(0).locator('[data-action="change-card-type"]').selectOption('true-false');
+  assert.equal(await row(0).locator('[data-edit-option]').count(),2);
+  assert.equal(await row(0).locator('[data-field="note"]').inputValue(),'Keep this explanation');
+  await page.locator('[data-card-type="short-answer"]').click();
+  await row(1).locator('[data-field="word"]').fill('Our planet is ___.');
+  await row(1).locator('[data-field="meaning"]').fill('Earth');
+  await row(1).locator('[data-action="change-card-type"]').selectOption('multiple-choice');
+  assert.equal(await row(1).locator('[data-edit-option]').count(),4);
+  assert.equal(await row(1).locator('[data-edit-option="0"]').inputValue(),'Earth');
+  await row(1).locator('[data-action="change-card-type"]').selectOption('short-answer');
+  assert.equal(await row(1).locator('[data-field="meaning"]').inputValue(),'Earth');
+  await page.locator('[data-card-type="true-false"]').click();
+  assert.equal(await row(2).locator('[data-edit-option]').count(),2);
+  await row(2).locator('[data-field="word"]').fill('The sun is a planet.');
+  await row(2).locator('[data-field="answer"]').selectOption('1');
+  await page.locator('#edit-deck-form button[type="submit"]').click();
+  assert.equal(await page.locator('#dialog').isVisible(),false);
+  await page.reload();
+  assert.deepEqual(await page.evaluate(()=>originalCards(deck()).map(c=>c.type)),['true-false','short-answer','true-false']);
+  await page.evaluate(()=>{ view='quiz-setup'; setup=null; render(); });
+  await page.locator('#quiz-time').selectOption('0');await page.locator('#quiz-shuffle').uncheck();await page.locator('#quiz-auto').uncheck();await page.locator('#start-quiz').click();
+  assert.deepEqual(await page.locator('.answer .shape').allTextContents(),['T','F']);
+  await page.locator('[data-action="quiz-answer"][data-index="0"]').click();
+  assert.equal(await page.evaluate(()=>quiz.feedback.correct),true);
+  await page.locator('#quiz-next').click();
+  await page.locator('#quiz-answer-input').fill('  EARTH  ');await page.locator('#quiz-answer-form button').click();
+  assert.equal(await page.evaluate(()=>quiz.feedback.correct),true);
+  await page.locator('#quiz-next').click();
+  await page.locator('[data-action="quiz-answer"][data-index="1"]').click();
+  assert.equal(await page.evaluate(()=>quiz.feedback.correct),true);
+  await page.locator('#quiz-next').click();
   if(process.argv[2]) {
    await page.locator('#quiz-file-input').setInputFiles(process.argv[2]);await page.waitForSelector('#quiz-import-form');
    const report=await page.evaluate(()=>({count:pending.parsed.questions.length,types:pending.parsed.questions.reduce((a,q)=>(a[q.type]=(a[q.type]||0)+1,a),{}),issues:pending.parsed.questions.filter(q=>q.issues.length).map(q=>({word:q.word,issues:q.issues}))}));

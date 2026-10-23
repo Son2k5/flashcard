@@ -44,6 +44,12 @@
 }
 
 @media (max-width: 620px) {
+  .quiz-draft { align-items: stretch; flex-direction: column; }
+  .quiz-draft-actions { justify-content: stretch; }
+  .quiz-draft-actions .btn { flex: 1 1 100%; }
+}
+
+@media (max-width: 620px) {
   .shell {
     padding: 0 18px;
   }
@@ -641,9 +647,12 @@
   }
   .header .nav button {
     min-height: 44px;
-    padding: 10px 6px;
+    padding: 10px 8px;
     font-size: 13px;
     text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
   .intro {
     align-items: flex-start;
@@ -710,7 +719,8 @@
   .grid,
   .study-options,
   .game-answers,
-  .storage-summary {
+  .storage-summary,
+  .quiz-options-grid {
     grid-template-columns: minmax(0, 1fr);
   }
   .form-grid {

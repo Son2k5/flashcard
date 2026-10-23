@@ -1,4 +1,6 @@
 const paths = {
+  trash: '<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/>',
+  more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   leaf: '<path d="M20 3C10 2 3 6 4 13c1 7 11 8 14 1 2-4 2-8 2-11Z"/><path d="M4 21 15 9"/>',
   book: '<path d="M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1Zm0 0v15"/>',
   headphones:
@@ -32,7 +34,7 @@ const icon = (name) =>
 
 /* Lưu trữ, điều hướng và giao diện. Không gửi tài liệu hoặc tiến độ lên máy chủ. */
 // prettier-ignore
-const ACCESS_HASH='b50d69ec079a3da2e49f32a3fbfb1274595578f38aa011abda60cd0040faf8f5';
+const ACCESS_HASH = 'b50d69ec079a3da2e49f32a3fbfb1274595578f38aa011abda60cd0040faf8f5';
 const STORE_KEY = StorageModel.metaKey,
   ACCESS_KEY = "la-access-v2";
 const $ = (s) => document.querySelector(s),
@@ -52,9 +54,9 @@ const uid = () =>
   crypto.randomUUID
     ? crypto.randomUUID()
     : "d" +
-      Array.from(crypto.getRandomValues(new Uint32Array(4)), (n) =>
-        n.toString(16),
-      ).join("");
+    Array.from(crypto.getRandomValues(new Uint32Array(4)), (n) =>
+      n.toString(16),
+    ).join("");
 const languages = {
   "en-US": "Anh",
   "ja-JP": "Nhật",
@@ -198,6 +200,159 @@ function flushStorage() {
   if (loadBlocked) return false;
   return writer.flush();
 }
+const quizSessionKey = (deckId) => StorageModel.key("session", deckId);
+function quizDraftPayload() {
+  if (!quiz || !deck()) return null;
+  const { cards, pool, questions, ...state } = quiz;
+  return {
+    version: 1,
+    deckId: deck().id,
+    savedAt: new Date().toISOString(),
+    typedAnswer: $("#quiz-answer-input")?.value ?? quiz.typedAnswer ?? "",
+    quiz: {
+      ...state,
+      cards: cards.map((c) => c.id),
+      pool: pool.map((c) => c.id),
+      questions: questions.map(({ card, ...q }) => ({ ...q, cardId: card.id })),
+    },
+  };
+}
+function saveQuizDraft() {
+  const payload = quizDraftPayload();
+  if (!payload) return false;
+  return writeStorage(quizSessionKey(payload.deckId), JSON.stringify(payload));
+}
+function removeQuizDraft(deckId) {
+  return removeStorage(quizSessionKey(deckId));
+}
+function hydrateQuizDraft(d, payload) {
+  if (payload?.version !== 1 || payload.deckId !== d.id || !payload.quiz)
+    throw Error("Bản nháp không hợp lệ.");
+  const saved = payload.quiz,
+    cardMap = new Map(originalCards(d).map((c) => [c.id, c]));
+  if (
+    !Array.isArray(saved.cards) ||
+    !Array.isArray(saved.pool) ||
+    !Array.isArray(saved.questions) ||
+    !saved.questions.length ||
+    !Number.isInteger(saved.index) ||
+    saved.index < 0 ||
+    saved.index >= saved.questions.length
+  )
+    throw Error("Bản nháp thiếu dữ liệu phiên.");
+  const cards = saved.cards.map((id) => cardMap.get(id)),
+    pool = saved.pool.map((id) => cardMap.get(id)),
+    questions = saved.questions.map(({ cardId, ...q }) => ({
+      ...q,
+      card: cardMap.get(cardId),
+    }));
+  if ([...cards, ...pool, ...questions.map((q) => q.card)].some((c) => !c))
+    throw Error("Nội dung bộ học đã thay đổi.");
+  return {
+    ...saved,
+    cards,
+    pool,
+    questions,
+    typedAnswer: typeof payload.typedAnswer === "string" ? payload.typedAnswer : "",
+    paused: false,
+    lastTick: performance.now(),
+  };
+}
+function readQuizDraft(d) {
+  const raw = readStorage(quizSessionKey(d.id));
+  if (raw === null) return null;
+  try {
+    const payload = JSON.parse(raw);
+    const restored = hydrateQuizDraft(d, payload);
+    return { payload, restored, valid: true };
+  } catch (error) {
+    return { valid: false, error };
+  }
+}
+function continueQuizDraft(deckId) {
+  const d = store.decks.find((item) => item.id === deckId),
+    draft = d && readQuizDraft(d);
+  if (!d || !draft?.valid) {
+    toast("Bản nháp không còn hợp lệ. Bạn có thể xóa để tạo lượt mới.");
+    return;
+  }
+  stopTimers();
+  store.activeDeckId = d.id;
+  save("meta");
+  quiz = draft.restored;
+  setup = structuredClone(quiz.config);
+  view = "quiz";
+  render();
+  revealStudyArea(
+    ".quiz-play",
+    quiz.answered
+      ? "#quiz-next"
+      : question().format === "typing"
+        ? "#quiz-answer-input"
+        : '.answer:not([disabled])',
+  );
+  if (!quiz.answered) timer = setInterval(tickQuiz, 100);
+}
+function deleteQuizDraft(deckId) {
+  const d = store.decks.find((item) => item.id === deckId);
+  if (!d || !confirm(`Xóa bài Quiz đang làm của “${d.name}”? Thao tác này không thể hoàn tác.`)) return;
+  removeQuizDraft(deckId);
+  render();
+  toast("Đã xóa bài Quiz đang làm.");
+}
+const flashSessionKey = id => StorageModel.key("flash-session", id);
+function saveFlashDraft() {
+  if (!flash || !deck()) return;
+  if (!flash.queue.length) { removeStorage(flashSessionKey(deck().id)); return; }
+  const { cards, ...state } = flash;
+  writeStorage(flashSessionKey(deck().id), JSON.stringify({
+    version: 1, deckId: deck().id, groupId,
+    cardIds: cards.map(c => c.id), state,
+  }));
+}
+function readFlashDraft(d) {
+  const raw = readStorage(flashSessionKey(d.id));
+  if (raw === null) return null;
+  try {
+    const p = JSON.parse(raw), cards = new Map(originalCards(d).map(c => [c.id,c]));
+    if (p.version !== 1 || p.deckId !== d.id || !Array.isArray(p.cardIds) ||
+        !p.cardIds.length || !p.cardIds.every(id => cards.has(id)) ||
+        !Array.isArray(p.state?.queue) || !p.state.queue.length ||
+        !p.state.queue.every(id => p.cardIds.includes(id)) ||
+        !p.state.attempts || !p.state.resolved) throw Error('Invalid flash session');
+    return { valid: true, groupId: p.groupId, restored: { ...p.state, cards: p.cardIds.map(id => cards.get(id)) } };
+  } catch { return { valid: false }; }
+}
+function continueFlashDraft(id) {
+  const d = store.decks.find(d => d.id === id), draft = d && readFlashDraft(d);
+  if (!draft?.valid || !leaveSession()) return;
+  store.activeDeckId = id;
+  groupId = draft.groupId || null;
+  flash = draft.restored;
+  view = "flash";
+  save("meta");
+  render();
+  revealStudyArea(".study-shell", "#flashcard");
+}
+function deleteFlashDraft(id) {
+  if (!confirm("Xóa phiên Flashcard đang làm? Tiến độ đã thuộc của từng thẻ vẫn được giữ.")) return;
+  removeStorage(flashSessionKey(id));
+  render();
+}
+function activeSessionsHTML(d) {
+  const rows = [];
+  for (const type of ["flash", "quiz"]) {
+    const draft = type === "flash" ? readFlashDraft(d) : readQuizDraft(d);
+    if (!draft) continue;
+    const q = draft.restored, name = type === "flash" ? "Flashcard" : "Quiz";
+    const detail = !draft.valid ? "Phiên không còn hợp lệ · hãy xóa để bắt đầu lại" :
+      type === "flash" ? Object.keys(q.resolved).length + "/" + q.cards.length + " thẻ hoàn tất" :
+      (q.index + (q.answered ? 1 : 0)) + "/" + q.questions.length + " lượt đã trả lời";
+    rows.push(`<div class="active-session-row"><button type="button" class="active-session-open" data-action="continue-${type}-draft" data-id="${esc(d.id)}" ${draft.valid ? "" : "disabled"}><span class="active-session-icon">${icon(type === "flash" ? "cards" : "trophy")}</span><span><strong>${name}</strong><small>${esc(detail)}</small></span>${draft.valid ? icon("arrow") : ""}</button>${button("delete-" + type + "-draft", icon("trash"), "danger ghost active-session-delete", `data-id="${esc(d.id)}" aria-label="Xóa phiên ${name}" title="Xóa phiên ${name}"`)}</div>`);
+  }
+  return rows.length ? `<section class="panel active-sessions" aria-label="Phiên đang làm"><h2>Phiên đang làm</h2>${rows.join("")}</section>` : "";
+}
+
 function load() {
   try {
     const current = StorageModel.read(storagePort);
@@ -231,6 +386,20 @@ function checkCapacity() {
       "Bộ nhớ trình duyệt sắp đầy, hãy xóa bớt hoặc xuất sao lưu";
     $("#storage-warning").hidden = false;
   }
+  const badge = $("#nav-storage-badge");
+  if (badge) {
+    badge.textContent = usage.error ? "0 KB" : formatBytes(usage.total);
+    badge.classList.toggle(
+      "warning",
+      !usage.error &&
+      usage.total > StorageModel.limit * 0.8 &&
+      usage.total <= StorageModel.limit,
+    );
+    badge.classList.toggle(
+      "danger",
+      !usage.error && usage.total > StorageModel.limit,
+    );
+  }
   return usage;
 }
 function formatBytes(n) {
@@ -253,6 +422,7 @@ function openStorage(fromQuota = false) {
     if (view === "quiz" && quiz) {
       stopTimers();
       quiz.paused = true;
+      saveQuizDraft();
     }
   }
   if ($("#dialog").open) {
@@ -299,7 +469,7 @@ function renderStorage() {
   );
   const rows = store.decks
     .map((d) => {
-      const keys = ["data", "progress", "stats"].map((k) =>
+      const keys = ["data", "progress", "stats", "session", "flash-session"].map((k) =>
         StorageModel.key(k, d.id),
       );
       const size = keys.reduce(
@@ -311,7 +481,7 @@ function renderStorage() {
         .filter(([k]) => k !== STORE_KEY)
         .reduce((n, [k, v]) => n + StorageModel.bytes(k, v), 0);
       const last = [...d.activity].sort().at(-1);
-      return `<tr><td class="storage-deck-name"><strong>${esc(d.name)}</strong><small>${esc(languages[d.language] || d.language)}</small></td><td data-label="Số thẻ">${Core.unique(Core.flatten(d.chapters)).length}</td><td data-label="Dung lượng">${formatBytes(size)}<small>${size ? "Trên trình duyệt" : "Chưa ghi theo schema mới"}${!size ? " · dự kiến " + formatBytes(estimated) : ""}</small></td><td class="storage-last-study" data-label="Học gần nhất">${last ? esc(last.split("-").reverse().join("/")) : "Chưa học"}</td><td class="storage-deck-actions"><div class="storage-actions">${button("export-deck", "Xuất sao lưu", "small", `data-id="${d.id}"`)}${button("clear-progress", "Xóa tiến độ", "small", `data-id="${d.id}"`)}${button("clear-history", "Xóa lịch sử quiz", "small", `data-id="${d.id}"`)}${button("delete-deck", "Xóa bộ từ", "small danger", `data-id="${d.id}"`)}</div></td></tr>`;
+      return `<tr><td class="storage-deck-name"><strong>${esc(d.name)}</strong><small>${esc(languages[d.language] || d.language)}</small></td><td data-label="Số thẻ">${Core.unique(Core.flatten(d.chapters)).length}</td><td data-label="Dung lượng">${formatBytes(size)}<small>${size ? "Trên trình duyệt" : "Chưa ghi theo schema mới"}${!size ? " · dự kiến " + formatBytes(estimated) : ""}</small></td><td class="storage-last-study" data-label="Học gần nhất">${last ? esc(last.split("-").reverse().join("/")) : "Chưa học"}</td><td class="storage-deck-actions"><div class="storage-actions">${button("delete-deck", icon("trash"), "small danger storage-icon-button", `data-id="${d.id}" aria-label="Xóa bộ từ ${esc(d.name)}" title="Xóa bộ từ"`)}<details class="deck-menu storage-menu"><summary aria-label="Thao tác với bộ ${esc(d.name)}" title="Thao tác khác">${icon("more")}</summary><div class="deck-menu-items">${button("export-deck", "Xuất sao lưu", "ghost", `data-id="${d.id}"`)}${button("clear-progress", "Xóa tiến độ", "ghost", `data-id="${d.id}"`)}${button("clear-history", "Xóa lịch sử quiz", "ghost", `data-id="${d.id}"`)}</div></details></div></td></tr>`;
     })
     .join("");
   $("#main").innerHTML =
@@ -365,9 +535,9 @@ function clearDeckPart(id, part) {
   flushStorage();
   storageMessage = saveOK
     ? "Đã xóa " +
-      (part === "progress"
-        ? "tiến độ; bộ từ và lịch sử quiz vẫn còn."
-        : "lịch sử quiz; tiến độ học vẫn còn.")
+    (part === "progress"
+      ? "tiến độ; bộ từ và lịch sử quiz vẫn còn."
+      : "lịch sử quiz; tiến độ học vẫn còn.")
     : "Đã cập nhật trong tab nhưng chưa ghi được. Hãy xuất sao lưu và thử lưu lại.";
   renderStorage();
 }
@@ -384,7 +554,7 @@ function deleteDeck(id) {
   store.decks = store.decks.filter((d) => d.id !== id);
   if (store.activeDeckId === id)
     store.activeDeckId = store.decks[0]?.id || null;
-  const keys = ["data", "progress", "stats"].map((k) =>
+  const keys = ["data", "progress", "stats", "session", "flash-session"].map((k) =>
     StorageModel.key(k, id),
   );
   writer.discard(keys);
@@ -413,7 +583,7 @@ function cleanupStorage() {
   const ids = new Set(store.decks.map((d) => d.id));
   let orphanKeys = 0;
   for (const [k] of before.entries) {
-    const match = k.match(/^la-vocab-v3:(?:data|progress|stats):(.+)$/);
+    const match = k.match(/^la-vocab-v3:(?:data|progress|stats|session|flash-session):(.+)$/);
     if (match && !ids.has(match[1])) {
       writer.discard([k]);
       if (removeStorage(k)) orphanKeys++;
@@ -576,23 +746,27 @@ function header() {
   $("#upload-header").innerHTML =
     icon("upload") + (uploading ? "Đang đọc…" : "Upload file");
   $("#upload-header").disabled = uploading;
-  $("#upload-header").hidden = view === "decks";
+  $("#upload-header").hidden = false;
   for (const b of document.querySelectorAll("nav [data-action]"))
     b.classList.toggle(
       "active",
       b.dataset.action === view ||
-        (b.dataset.action === "library" && view === "group"),
+      (b.dataset.action === "library" && view === "group") ||
+      (b.dataset.action === "flashcard" &&
+        (view === "flash-setup" || view === "flash" || view === "flash-result")),
     );
   $("#nav-deck").hidden = !d;
+  $("#nav-flash").hidden = !d;
   $("#nav-hard").hidden = !d;
   $("#nav-stats").hidden = !d;
   $("#nav-quiz-setup").hidden = !d;
   $("#backup-export").disabled = !store.decks.length;
+  checkCapacity();
 }
 // Only screen/deck/group changes create browser entries, never individual answers.
 let routePosition = Number.isInteger(history.state?.flashcardPosition)
-    ? history.state.flashcardPosition
-    : 0,
+  ? history.state.flashcardPosition
+  : 0,
   routeSnapshot = null,
   restoringRoute = false,
   undoingBack = false;
@@ -615,6 +789,40 @@ function syncRoute() {
   else history.replaceState(state, "");
   routeSnapshot = route;
 }
+function restoreWorkspace() {
+  const state = history.state;
+  if (!state?.flashcardRoute) { render(); return; }
+  restoreRoute(state.flashcardRoute);
+  let workspace = null;
+  try {
+    const saved = JSON.parse(sessionStorage.getItem("la-workspace-reload") || "null");
+    sessionStorage.removeItem("la-workspace-reload");
+    if (JSON.stringify(saved?.route) === JSON.stringify(state.flashcardRoute))
+      workspace = saved.workspace;
+  } catch { /* Storage may be unavailable; the saved route still restores. */ }
+  if (workspace && deck() && state.flashcardRoute.deckId === deck().id) {
+    search = typeof workspace.search === "string" ? workspace.search : "";
+    hardFilter = !!workspace.hardFilter;
+    if (Array.isArray(workspace.selectedSections))
+      selectedSections = new Set(workspace.selectedSections);
+    if (workspace.setup?.deckId === deck().id) setup = workspace.setup;
+    const saved = workspace.flash;
+    if (state.flashcardRoute.view === "flash" && saved &&
+        Array.isArray(saved.cardIds) && Array.isArray(saved.queue) && saved.queue.length) {
+      const cards = new Map(originalCards(deck()).map(c => [c.id, c]));
+      if (saved.cardIds.every(id => cards.has(id)) &&
+          saved.queue.every(id => saved.cardIds.includes(id))) {
+        flash = { ...saved, cards: saved.cardIds.map(id => cards.get(id)) };
+        view = "flash";
+      }
+    }
+  }
+  if (state.flashcardRoute.view === "quiz" && deck() && readQuizDraft(deck())?.valid) {
+    continueQuizDraft(deck().id);
+    return;
+  }
+  render();
+}
 function restoreRoute(route) {
   const allowed = [
     "decks",
@@ -628,6 +836,7 @@ function restoreRoute(route) {
     "quiz-result",
     "flash",
     "flash-result",
+    "flash-setup",
   ];
   view = allowed.includes(route?.view) ? route.view : "decks";
   const target = store.decks.find((d) => d.id === route?.deckId);
@@ -726,7 +935,7 @@ function render() {
   setNavigationOpen(
     false,
     compactNavigation.matches &&
-      !!document.activeElement.closest("#main-navigation"),
+    !!document.activeElement.closest("#main-navigation"),
   );
   header();
   if (!deck() && !["decks", "storage"].includes(view)) view = "decks";
@@ -736,6 +945,7 @@ function render() {
       storage: renderStorage,
       decks: renderDecks,
       library: renderLibrary,
+      "flash-setup": renderLibrary,
       group: renderGroup,
       hard: renderHard,
       stats: renderStats,
@@ -752,6 +962,17 @@ function stopTimers() {
   if (autoTimer !== null) clearTimeout(autoTimer);
   timer = autoTimer = null;
 }
+function revealStudyArea(containerSelector, focusSelector = "") {
+  const reveal = () => {
+    const container = $(containerSelector);
+    if (!container) return;
+    container.scrollIntoView({ behavior: "auto", block: "start", inline: "nearest" });
+    if (focusSelector)
+      $(focusSelector)?.focus({ preventScroll: true });
+  };
+  reveal();
+  requestAnimationFrame(() => requestAnimationFrame(reveal));
+}
 function leaveSession() {
   const sessionView = view === "storage" ? storageReturn : view;
   const playing = sessionView === "quiz" && quiz && !quiz.answered;
@@ -761,10 +982,14 @@ function leaveSession() {
     quiz.paused = true;
     stopTimers();
   }
+  if (sessionView === "quiz" && quiz) saveQuizDraft();
+  if (sessionView === "flash" && flash) saveFlashDraft();
   if (
     (sessionView === "flash" || sessionView === "quiz") &&
     !confirm(
-      "Rời phiên học đang dở? Tiến độ từng từ đã được lưu, nhưng phiên này sẽ kết thúc.",
+      sessionView === "quiz"
+        ? "Rời bài Quiz đang làm? Bài sẽ được lưu để bạn tiếp tục sau."
+        : "Rời phiên học đang dở? Phiên và tiến độ được lưu để bạn tiếp tục sau.",
     )
   ) {
     if (playing && !wasPaused && !quiz.answered) {
@@ -804,7 +1029,7 @@ function openDeck(id) {
 const intro = (tag, title, sub, extra = "") =>
   `<section class="intro"><div><div class="eyebrow">${tag}</div><h1>${title}</h1><p>${sub}</p></div>${extra}</section>`;
 function fileGuide() {
-  return `<section class="panel file-guide" aria-label="Hướng dẫn file có thể nộp"><h2>Bạn có thể nộp những file nào?</h2><p class="muted">Chọn đúng loại tài liệu để bắt đầu học. File được đọc ngay trên thiết bị của bạn.</p><div class="file-guide-grid"><article class="file-guide-item"><span class="pill">.docx · .xlsx · .csv</span><h3>Bộ từ vựng</h3><p>File Word hoặc Excel (.xlsx, .csv) có các cột <b>STT</b>, <b>Từ vựng</b>, <b>Dạng từ</b>, <b>Nghĩa</b>, <b>Ví dụ</b> hoặc bảng Word Từ và Nghĩa. Mỗi Sheet Excel tương ứng một chương.</p>${button("upload", "Thêm bộ từ", "small primary")}</article><article class="file-guide-item"><span class="pill">.docx · .pdf</span><h3>Câu hỏi trắc nghiệm</h3><p>Mỗi câu có câu hỏi và 4 lựa chọn A, B, C, D. Có thể ghi <b>Đáp án: A</b>. Tự động nhận diện tạo <b>Flashcard</b> hoặc <b>Quiz thử thách</b>.</p>${button("upload-quiz", "Nhập trắc nghiệm", "small primary")}</article><article class="file-guide-item"><span class="pill">.json</span><h3>Khôi phục tiến độ</h3><p>Dùng file đã tạo bằng <b>Xuất tiến độ</b> của ứng dụng. Khôi phục sẽ thay thế dữ liệu hiện tại; hãy xuất bản sao lưu trước.</p>${button("import-backup", "Nhập tiến độ", "small")}</article></div><p class="muted file-guide-note">Tối đa 30 MB/file. Đã hỗ trợ Word (.docx), Excel (.xlsx, .csv) và PDF trắc nghiệm. Chưa hỗ trợ file scan và ảnh.</p></section>`;
+  return `<section class="panel file-guide" aria-label="Hướng dẫn file có thể nộp"><h2>Bạn có thể nộp những file nào?</h2><p class="muted">Chọn đúng loại tài liệu để bắt đầu học. File được đọc ngay trên thiết bị của bạn.</p><div class="file-guide-grid"><article class="file-guide-item"><span class="pill">.docx · .xlsx · .csv</span><h3>Bộ từ vựng</h3><p>File Word hoặc Excel (.xlsx, .csv) có các cột <b>STT</b>, <b>Từ vựng</b>, <b>Dạng từ</b>, <b>Nghĩa</b>, <b>Ví dụ</b> hoặc bảng Word Từ và Nghĩa. Mỗi Sheet Excel tương ứng một chương.</p>${button("upload", "Thêm bộ từ", "small primary")}</article><article class="file-guide-item"><span class="pill">.docx · .pdf</span><h3>Câu hỏi trắc nghiệm</h3><p>Mỗi câu có câu hỏi và 4 lựa chọn A, B, C, D. Có thể ghi <b>Đáp án: A</b>. Tự động nhận diện tạo <b>Flashcard</b> hoặc <b>Quiz thử thách</b>.</p>${button("upload-quiz-guide", "Nhập trắc nghiệm", "small primary")}</article><article class="file-guide-item"><span class="pill">.json</span><h3>Khôi phục tiến độ</h3><p>Dùng file đã tạo bằng <b>Xuất tiến độ</b> của ứng dụng. Khôi phục sẽ thay thế dữ liệu hiện tại; hãy xuất bản sao lưu trước.</p>${button("import-backup", "Nhập tiến độ", "small")}</article></div><p class="muted file-guide-note">Tối đa 30 MB/file. Đã hỗ trợ Word (.docx), Excel (.xlsx, .csv) và PDF trắc nghiệm. Chưa hỗ trợ file scan và ảnh.</p></section>`;
 }
 function librarySwitcher() {
   return `<section class="panel library-switcher" aria-label="Chuyển bộ trong thư viện"><div class="switcher-field"><label for="library-deck">Chuyển bộ học <span class="pill">${store.decks.length} bộ trong thư viện</span></label><select id="library-deck" aria-describedby="library-switcher-hint">${store.decks.map((d) => `<option value="${esc(d.id)}" ${d.id === store.activeDeckId ? "selected" : ""}>${esc(d.name)} · ${d.kind === "quiz" ? "Trắc nghiệm" : "Từ vựng"}</option>`).join("")}</select></div>${button("create-manual-deck", icon("plus") + " Thêm bộ từ", "small")}<p class="muted switcher-hint" id="library-switcher-hint">Chọn bộ để xem nội dung và thống kê. Tiến độ được lưu riêng cho từng bộ.</p></section>`;
@@ -824,6 +1049,24 @@ function switchLibraryDeck(id) {
   render();
   $("#library-deck").focus();
 }
+function quizDraftHTML(decks = store.decks) {
+  return decks
+    .map((d) => {
+      const draft = readQuizDraft(d);
+      if (!draft) return "";
+      if (!draft.valid)
+        return `<section class="panel quiz-draft"><div><span class="eyebrow">BÀI ĐANG LÀM</span><h2>${esc(d.name)}</h2><p class="muted">Bản nháp này bị hỏng hoặc bộ câu hỏi đã thay đổi. Bạn có thể xóa để bắt đầu lượt mới.</p></div><div class="row">${button("delete-quiz-draft", "Xóa bài đang làm", "danger", `data-id="${d.id}"`)}</div></section>`;
+      const q = draft.restored,
+        total = q.questions.length,
+        current = Math.min(q.index + 1, total),
+        answered = q.results.length,
+        savedAt = draft.payload.savedAt
+          ? new Date(draft.payload.savedAt).toLocaleString("vi-VN")
+          : "";
+      return `<section class="panel quiz-draft"><div class="quiz-draft-copy"><span class="eyebrow">BÀI ĐANG LÀM</span><h2>${esc(d.name)}</h2><p><strong>Câu ${current}/${total}</strong> · ${answered} câu đã trả lời · ${Number(q.score || 0).toLocaleString("vi-VN")} điểm</p>${savedAt ? `<small class="muted">Lưu gần nhất: ${esc(savedAt)}</small>` : ""}</div><div class="quiz-draft-actions">${button("continue-quiz-draft", "Tiếp tục làm bài", "primary", `data-id="${d.id}"`)}${button("delete-quiz-draft", "Xóa bài đang làm", "danger ghost", `data-id="${d.id}"`)}</div></section>`;
+    })
+    .join("");
+}
 function renderDecks() {
   const cards = store.decks
     .map((d) => {
@@ -838,9 +1081,9 @@ function renderDecks() {
       "Học mọi môn, mỗi ngày.",
       "Học từ vựng hoặc nhập bộ câu hỏi trắc nghiệm Word/PDF cho mọi môn.",
       `<div class="row deck-toolbar">${button("create-new", icon("plus") + " Tạo mới", "primary create-new-button")}${button("storage", "Quản lý dung lượng")}</div>`,
-    ) +
+    ) + quizDraftHTML() +
     (store.decks.length
-      ? `<div class="grid">${cards}</div>`
+      ? `<div class="grid">${cards}</div>` + fileGuide()
       : emptyDeckState());
 }
 function deckCardHTML(d, cards, knownCount) {
@@ -859,10 +1102,43 @@ function showCreateMenu() {
   }
   openDialog(`<div class="create-menu-heading"><span class="eyebrow">BẮT ĐẦU MỘT BỘ HỌC</span><h2 id="dialog-title">Bạn muốn tạo theo cách nào?</h2><p>Chọn chế độ phù hợp với nội dung bạn đang có.</p></div><div class="create-mode-list">${[
     ["create-manual-deck", "flip", "Tự nhập flashcard", "Tạo bộ từ hoặc thẻ ghi nhớ với mặt trước, mặt sau và ghi chú.", "Không cần file"],
-    ["create-manual-quiz", "trophy", "Tự nhập trắc nghiệm", "Soạn câu hỏi, bốn lựa chọn A/B/C/D, đáp án đúng và lời giải.", "Không cần file"],
+    ["create-manual-quiz", "trophy", "Tự nhập trắc nghiệm", "Soạn câu hỏi A/B/C/D, Đúng / Sai hoặc Điền từ, kèm đáp án và lời giải.", "Không cần file"],
     ["upload", "upload", "Nhập bộ từ từ file", "Tạo bộ từ vựng từ bảng hoặc danh sách có sẵn trong tài liệu.", "Word · Excel · CSV"],
     ["upload-quiz", "trophy", "Nhập câu hỏi trắc nghiệm", "Nhận diện câu hỏi, lựa chọn và đáp án để luyện quiz hoặc học flashcard.", "Word · PDF"],
   ].map(([action, glyph, title, description, hint]) => `<button type="button" class="create-mode" data-action="${action}"><span class="create-mode-icon">${icon(glyph)}</span><span class="create-mode-copy"><strong>${title}</strong><span>${description}</span><small>${hint}</small></span><span class="create-mode-arrow">${icon("arrow")}</span></button>`).join("")}</div><p class="create-menu-note">Bạn có thể mở lại bộ đã lưu để thêm hoặc chỉnh sửa nội dung.</p>`);
+}
+function showUploadMenu() {
+  if (!leaveSession()) return;
+  openDialog(
+    `<div class="create-menu-heading"><span class="eyebrow">TẢI LÊN TÀI LIỆU</span><h2 id="dialog-title">Bạn muốn nộp file nào?</h2><p>Chọn đúng loại tài liệu để hệ thống đọc và tạo bộ học tự động.</p></div><div class="create-mode-list">${[
+      [
+        "upload-vocab",
+        "upload",
+        "Bộ từ vựng",
+        "File Word hoặc Excel (.xlsx, .csv) có các cột STT, Từ vựng, Dạng từ, Nghĩa, Ví dụ hoặc bảng Từ & Nghĩa.",
+        ".docx · .xlsx · .csv",
+      ],
+      [
+        "upload-quiz",
+        "trophy",
+        "Câu hỏi trắc nghiệm",
+        "File Word hoặc PDF có câu hỏi và 4 lựa chọn A, B, C, D kèm đáp án để tạo Flashcard & Quiz.",
+        ".docx · .pdf",
+      ],
+      [
+        "import-backup",
+        "flip",
+        "Khôi phục tiến độ",
+        "Dùng file sao lưu .json để phục hồi toàn bộ bộ từ và tiến độ học tập trên trình duyệt.",
+        ".json",
+      ],
+    ]
+      .map(
+        ([action, glyph, title, description, hint]) =>
+          `<button type="button" class="create-mode" data-action="${action}"><span class="create-mode-icon">${icon(glyph)}</span><span class="create-mode-copy"><strong>${title}</strong><span>${description}</span><small>${hint}</small></span><span class="create-mode-arrow">${icon("arrow")}</span></button>`,
+      )
+      .join("")}</div><div class="dialog-actions" style="margin-top:20px;justify-content:flex-end">${button("close-dialog", "Đóng")}</div>`,
+  );
 }
 function emptyDeckState() {
   return `<section class="deck-empty-state" id="drop-zone"><span class="deck-empty-icon">${icon("cards")}</span><h2>Không gian học tập của bạn</h2><p>Bấm <strong>Tạo mới</strong> để bắt đầu với flashcard, bộ từ hoặc câu hỏi trắc nghiệm.</p><span class="muted">Bạn cũng có thể kéo thả file Word, Excel, CSV hoặc PDF vào đây.</span></section>`;
@@ -890,14 +1166,14 @@ function renderLibrary() {
   $("#main").innerHTML =
     intro(
       d.kind === "quiz" ? "THƯ VIỆN CÂU HỎI" : "THƯ VIỆN CỦA BẠN",
-      esc(d.name),
+      view === "flash-setup" ? "Học Flashcard" : esc(d.name),
       d.kind === "quiz"
         ? `Bộ câu hỏi trắc nghiệm & Flashcard · ${visibleCards(d).length} câu`
         : `${esc(languages[d.language] || d.language)} · ${d.organization.mode === "split" ? "Tách theo chapter" : "Gộp tất cả vào một bản"}`,
       libraryAction,
     ) +
     statCards(visibleCards(d)) +
-    librarySwitcher() +
+    librarySwitcher() + activeSessionsHTML(d) +
 
     `<div class="section-head"><h2>Chọn một nhóm để bắt đầu</h2><label class="searchbar">${icon("search")}<input type="search" id="search" value="${esc(search)}" placeholder="Tìm từ hoặc nghĩa trong toàn bộ bộ từ…" aria-label="Tìm kiếm từ vựng"></label></div><div id="library-results"></div>` +
     fileGuide();
@@ -905,11 +1181,14 @@ function renderLibrary() {
     $("#main .section-head h2").textContent = "Thư viện flashcard";
     $("#search").placeholder = "Tìm nội dung thẻ, nghĩa hoặc ghi chú…";
   }
+  if (view === "flash-setup") {
+    $("#main .section-head h2").textContent = "Chọn nội dung học Flashcard";
+  }
   renderSearch();
 }
 function wordTable(cards) {
   if (deck()?.kind === "quiz")
-    return `<div class="section-list">${cards.map((c) => `<article class="panel question-preview"><h3>${esc(c.word)}</h3>${(c.options || []).map((o, i) => `<p class="${i === c.answer ? "quiz-answer-highlight" : ""}">${"ABCD"[i]}. ${esc(o)}</p>`).join("")}<p><strong class="quiz-answer-highlight">Đáp án: ${c.options ? (c.type === "true-false" ? ["T", "F"][c.answer] : "ABCD"[c.answer]) + ". " : ""}${esc(c.meaning)}</strong></p>${c.note ? `<p>Giải thích: ${esc(c.note)}</p>` : ""}${starButton(c.id)}</article>`).join("") || "<p>Chưa có câu hỏi phù hợp.</p>"}</div>`;
+    return `<div class="section-list">${cards.map((c) => `<article class="panel question-preview"><h3>${esc(c.word)}</h3>${(c.options || []).map((o, i) => `<p class="${i === c.answer ? "quiz-answer-highlight" : ""}">${c.type === "true-false" ? ["T", "F"][i] : "ABCD"[i]}. ${esc(o)}</p>`).join("")}<p><strong class="quiz-answer-highlight">Đáp án: ${c.options ? (c.type === "true-false" ? ["T", "F"][c.answer] : "ABCD"[c.answer]) + ". " : ""}${esc(c.meaning)}</strong></p>${c.note ? `<p>Giải thích: ${esc(c.note)}</p>` : ""}${starButton(c.id)}</article>`).join("") || "<p>Chưa có câu hỏi phù hợp.</p>"}</div>`;
   if (!cards.length)
     return '<div class="empty-state">Chưa có từ phù hợp.</div>';
   return `<div class="table-wrap"><table><thead><tr><th>Từ</th><th>Nghĩa và ghi chú</th><th>Thao tác</th></tr></thead><tbody>${cards.map((c) => `<tr><td class="word">${badges(c.pos)} ${esc(c.word)}<small>${esc(c.chapterName || "")} / ${esc(c.sectionName || "")}</small></td><td class="meaning">${esc(c.meaning)}${c.note ? `<small>${esc(c.note)}</small>` : ""}</td><td><div class="row" style="flex-wrap:nowrap">${starButton(c.id)}${speaker(c.id)}</div></td></tr>`).join("")}</tbody></table></div>`;
@@ -1000,24 +1279,22 @@ function renderStats() {
     )
       .map((g) => {
         const a = Core.unique(Core.flatten([g]));
-        return (
-          `<div class="chart-row"><span>${esc(g.name)}</span>${meter(a)}<strong>${known(a)}/${a.length} · ${percent(a)}%</strong></div>` +
-          fileGuide()
-        );
+        return `<div class="chart-row"><span>${esc(g.name)}</span>${meter(a)}<strong>${known(a)}/${a.length} · ${percent(a)}%</strong></div>`;
       })
       .join(
         "",
       )}</section><section class="panel"><h2>Nhịp học 7 ngày</h2><div class="week">${Array.from(
-      { length: 7 },
-      (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - 6 + i);
-        const done = d.activity.includes(day(date));
-        return `<div class="day ${done ? "done" : ""}"><span>${esc(date.toLocaleDateString("vi-VN", { weekday: "short" }))}</span><i title="${day(date)}">${done ? "✓" : date.getDate()}</i></div>`;
-      },
-    ).join(
-      "",
-    )}</div><p class="muted" style="margin-top:20px">${d.activity.length} ngày đã học. Trả lời ít nhất một câu để ghi nhận ngày học; chuỗi được giữ nếu đã học hôm nay hoặc hôm qua.</p></section></div>`;
+        { length: 7 },
+        (_, i) => {
+          const date = new Date();
+          date.setDate(date.getDate() - 6 + i);
+          const done = d.activity.includes(day(date));
+          return `<div class="day ${done ? "done" : ""}"><span>${esc(date.toLocaleDateString("vi-VN", { weekday: "short" }))}</span><i title="${day(date)}">${done ? "✓" : date.getDate()}</i></div>`;
+        },
+      ).join(
+        "",
+      )}</div><p class="muted" style="margin-top:20px">${d.activity.length} ngày đã học. Trả lời ít nhất một câu để ghi nhận ngày học; chuỗi được giữ nếu đã học hôm nay hoặc hôm qua.</p></section></div>` +
+    fileGuide();
 }
 function openDialog(html) {
   const dialog = $("#dialog");
@@ -1027,6 +1304,14 @@ function openDialog(html) {
     html;
   if (!$("#dialog").open) $("#dialog").showModal();
   dialog.scrollTop = scrollTop;
+  if (scrollTop > 0) {
+    requestAnimationFrame(() => {
+      dialog.scrollTop = scrollTop;
+    });
+    setTimeout(() => {
+      dialog.scrollTop = scrollTop;
+    }, 0);
+  }
 }
 function closeDialog() {
   if ($("#dialog").dataset.kind === "pause") {
@@ -1062,14 +1347,45 @@ function blankFlashcard() {
 function blankQuizQuestion() {
   return { ...blankFlashcard(), type: "multiple-choice", options: ["", "", "", ""], answer: 0 };
 }
-function addEditorCard() {
+function addEditorCard(type = "multiple-choice") {
   if (pending?.kind !== "edit-deck") return;
   syncDeckEditor();
-  pending.draft.chapters.at(-1).sections.at(-1).cards.push(pending.draft.kind === "quiz" ? blankQuizQuestion() : blankFlashcard());
+  let newCard;
+  if (pending.draft.kind === "quiz") {
+    if (type === "true-false") {
+      newCard = { ...blankFlashcard(), type: "true-false", options: ["True", "False"], answer: 0, meaning: "True" };
+    } else if (type === "short-answer") {
+      newCard = { ...blankFlashcard(), type: "short-answer", answer: "", meaning: "" };
+    } else {
+      newCard = blankQuizQuestion();
+    }
+  } else {
+    newCard = blankFlashcard();
+  }
+  pending.draft.chapters.at(-1).sections.at(-1).cards.push(newCard);
   showDeckEditor();
 }
 function editorCards() {
   return pending.draft.chapters.flatMap((ch) => ch.sections.flatMap((s) => s.cards));
+}
+function changeEditorCardType(index, type) {
+  if (pending?.kind !== "edit-deck" || pending.draft.kind !== "quiz") return;
+  if (!["multiple-choice", "true-false", "short-answer"].includes(type)) return;
+  syncDeckEditor();
+  const card = editorCards()[index];
+  if (!card || card.type === type) return;
+  const previousAnswer = card.meaning;
+  card.type = type;
+  if (type === "short-answer") {
+    delete card.options;
+    card.answer = previousAnswer;
+  } else {
+    card.options = type === "true-false" ? ["True", "False"] : [previousAnswer, "", "", ""];
+    card.answer = Math.max(0, card.options.indexOf(previousAnswer));
+    card.meaning = card.options[card.answer];
+  }
+  showDeckEditor();
+  document.querySelector(`[data-edit-card="${index}"] [data-action="change-card-type"]`)?.focus({ preventScroll: true });
 }
 function syncDeckEditor() {
   pending.draft.name = $("#edit-deck-name").value;
@@ -1077,28 +1393,140 @@ function syncDeckEditor() {
   const cards = editorCards();
   for (const row of document.querySelectorAll("[data-edit-card]")) {
     const card = cards[Number(row.dataset.editCard)];
+    if (!card) continue;
     for (const field of ["word", "meaning", "note", "pos"])
       if (row.querySelector(`[data-field="${field}"]`))
         card[field] = row.querySelector(`[data-field="${field}"]`).value;
     if (card.options) {
       card.options = Array.from(row.querySelectorAll("[data-edit-option]"), (el) => el.value);
-      card.answer = Number(row.querySelector('[data-field="answer"]').value);
-      card.meaning = card.options[card.answer];
+      const answerSelect = row.querySelector('[data-field="answer"]');
+      if (answerSelect) {
+        card.answer = Number(answerSelect.value);
+        card.meaning = card.options[card.answer] || "";
+      }
     } else if (card.type === "short-answer") card.answer = card.meaning;
   }
 }
 function showDeckEditor() {
   const d = pending.draft;
   if (d.kind !== "quiz") return showFlashcardEditor();
-  openDialog(`<h2 id="dialog-title">${pending.creating ? "Tạo bộ trắc nghiệm" : "Chỉnh sửa bộ đã lưu"}</h2><p>Sửa nội dung rồi bấm Lưu thay đổi. Đóng hoặc Hủy để bỏ các thay đổi chưa lưu.</p><form id="edit-deck-form" class="form-stack"><label>Tên bộ học<input type="text" id="edit-deck-name" maxlength="200" required value="${esc(d.name)}"></label>${editorCards().map((c, i) => `<section class="question-preview form-stack" data-edit-card="${i}"><div class="row spread"><h3>${d.kind === "quiz" ? "Câu" : "Thẻ"} ${i + 1}</h3>${button("remove-edited-card", "Xóa", "small danger", `data-id="${i}"`)}</div><label>${d.kind === "quiz" ? "Câu hỏi" : "Từ / Mặt trước"}<textarea data-field="word" required>${esc(c.word)}</textarea></label>${c.options ? c.options.map((o, j) => `<label>Lựa chọn ${c.type === "true-false" ? ["Đúng", "Sai"][j] : "ABCD"[j]}<textarea data-edit-option="${j}" required>${esc(o)}</textarea></label>`).join("") + `<label>Đáp án đúng<select data-field="answer">${c.options.map((_, j) => `<option value="${j}" ${c.answer === j ? "selected" : ""}>${c.type === "true-false" ? ["Đúng", "Sai"][j] : "ABCD"[j]}</option>`).join("")}</select></label>` : `<label>${d.kind === "quiz" ? "Đáp án đúng" : "Nghĩa / Mặt sau"}<textarea data-field="meaning" required>${esc(c.meaning)}</textarea></label>`}${d.kind !== "quiz" ? `<label>Loại từ<input type="text" data-field="pos" maxlength="100" value="${esc(c.pos)}"></label>` : ""}<label>${d.kind === "quiz" ? "Lời giải / Ghi chú" : "Ví dụ / Ghi chú"}<textarea data-field="note">${esc(c.note)}</textarea></label></section>`).join("")}${button("add-editor-card", icon("plus") + " Thêm câu hỏi", "add-card-button")}<p id="edit-deck-error" class="gate-error" role="alert"></p><div class="dialog-actions">${button("close-dialog", "Hủy")}<button type="submit" class="btn primary">Lưu thay đổi</button></div></form>`);
+  const cards = editorCards();
+  openDialog(
+    `<div class="editor-heading">
+      <span class="eyebrow">CHỈNH SỬA BỘ HỌC</span>
+      <h2 id="dialog-title">${pending.creating ? "Tạo bộ trắc nghiệm" : "Chỉnh sửa bộ đã lưu"}</h2>
+      <p>Sửa nội dung câu hỏi và các lựa chọn rồi bấm Lưu thay đổi. Đóng hoặc Hủy để bỏ các thay đổi chưa lưu.</p>
+    </div>
+    <form id="edit-deck-form" class="form-stack quiz-deck-editor">
+      <div class="editor-metadata">
+        <label>Tên bộ học
+          <input type="text" id="edit-deck-name" maxlength="200" required value="${esc(d.name)}" placeholder="Ví dụ: Luyện thi trắc nghiệm">
+        </label>
+      </div>
+      <div class="row spread editor-section-title">
+        <h3>Danh sách câu hỏi</h3>
+        <span class="pill">${cards.length} câu</span>
+      </div>
+      <div class="quiz-editor-card-list">
+        ${cards.map((c, i) => {
+      return `
+            <section class="quiz-editor-card" data-edit-card="${i}">
+              <div class="editor-card-header">
+                <div class="row" style="gap:8px;align-items:center">
+                  <strong class="quiz-card-title">Câu ${i + 1}</strong>
+                  <select class="quiz-card-type-select" data-action="change-card-type" data-id="${i}" aria-label="Loại câu hỏi ${i + 1}">
+                    <option value="multiple-choice" ${c.type !== "true-false" && c.type !== "short-answer" ? "selected" : ""}>Trắc nghiệm A–D</option>
+                    <option value="true-false" ${c.type === "true-false" ? "selected" : ""}>Đúng / Sai (True/False)</option>
+                    <option value="short-answer" ${c.type === "short-answer" ? "selected" : ""}>Điền từ (Trả lời ngắn)</option>
+                  </select>
+                </div>
+                ${button("remove-edited-card", icon("close") + " Xóa", "small danger ghost", `data-id="${i}" aria-label="Xóa câu ${i + 1}"`)}
+              </div>
+
+              <div class="quiz-editor-body">
+                <label class="quiz-field-label">
+                  <span>Câu hỏi</span>
+                  <textarea data-field="word" required rows="1" class="quiz-question-input" placeholder="Nhập câu hỏi...">${esc(c.word)}</textarea>
+                </label>
+
+                ${c.options ? `
+                  <div class="quiz-options-section">
+                    <div class="row spread" style="align-items:center;margin-bottom:6px">
+                      <span class="quiz-field-label" style="margin-bottom:0">Các lựa chọn</span>
+                      <label class="quiz-answer-selector">
+                        <span>Đáp án đúng:</span>
+                        <select data-field="answer" class="quiz-answer-select" aria-label="Chọn đáp án đúng cho câu ${i + 1}">
+                          ${c.options.map((_, j) => `<option value="${j}" ${c.answer === j ? "selected" : ""}>Đáp án ${c.type === "true-false" ? (["True (Đúng)", "False (Sai)"][j] || (j + 1)) : "ABCD"[j]}</option>`).join("")}
+                        </select>
+                      </label>
+                    </div>
+                    <div class="quiz-options-grid ${c.type === "true-false" ? "quiz-tf-grid" : ""}">
+                      ${c.options.map((o, j) => {
+        const letter = c.type === "true-false" ? (["T", "F"][j] || (j + 1)) : "ABCD"[j];
+        const isCorrect = c.answer === j;
+        return `
+                          <div class="quiz-option-item ${isCorrect ? "is-correct" : ""}" data-option-index="${j}">
+                            <button type="button" class="option-badge" data-action="pick-option-answer" data-id="${j}" title="Bấm để chọn làm đáp án đúng">${letter}</button>
+                            <textarea data-edit-option="${j}" required rows="1" class="quiz-option-input" placeholder="Lựa chọn ${letter}...">${esc(o)}</textarea>
+                          </div>
+                        `;
+      }).join("")}
+                    </div>
+                  </div>
+                ` : `
+                  <label class="quiz-field-label">
+                    <span>Đáp án đúng (Điền từ)</span>
+                    <textarea data-field="meaning" required rows="1" class="quiz-question-input" placeholder="Nhập đáp án đúng cần điền...">${esc(c.meaning)}</textarea>
+                  </label>
+                `}
+
+                ${d.kind !== "quiz" ? `
+                  <label class="quiz-field-label">
+                    <span>Loại từ</span>
+                    <input type="text" data-field="pos" maxlength="100" value="${esc(c.pos || "")}" placeholder="Ví dụ: (n), (v)...">
+                  </label>
+                ` : ""}
+
+                <label class="quiz-field-label quiz-note-label">
+                  <span>Lời giải / Ghi chú <small>Không bắt buộc</small></span>
+                  <textarea data-field="note" rows="1" class="quiz-note-input" placeholder="Giải thích lời giải, kiến thức cần nhớ...">${esc(c.note || "")}</textarea>
+                </label>
+              </div>
+            </section>
+          `;
+    }).join("")}
+      </div>
+      <div class="editor-add-cards-row">
+        ${button("add-editor-card", icon("plus") + " Thêm trắc nghiệm A–D", "btn add-card-button", 'data-card-type="multiple-choice"')}
+        ${button("add-editor-card", icon("plus") + " Thêm Đúng / Sai", "btn add-card-button", 'data-card-type="true-false"')}
+        ${button("add-editor-card", icon("plus") + " Thêm Điền từ", "btn add-card-button", 'data-card-type="short-answer"')}
+      </div>
+      <p id="edit-deck-error" class="gate-error" role="alert"></p>
+      <div class="dialog-actions editor-footer">
+        <span class="muted">Chỉ lưu khi bạn sẵn sàng.</span>
+        ${button("close-dialog", "Hủy")}
+        <button type="submit" class="btn primary">Lưu thay đổi ${icon("check")}</button>
+      </div>
+    </form>`
+  );
+  adjustEditorTextareas();
+}
+function adjustEditorTextareas() {
+  const form = $("#edit-deck-form");
+  if (!form) return;
+  form.querySelectorAll(".quiz-question-input, .quiz-note-input").forEach((ta) => {
+    ta.style.height = "auto";
+    const minH = ta.classList.contains("quiz-question-input") ? 36 : 32;
+    ta.style.height = Math.max(ta.scrollHeight, minH) + "px";
+  });
 }
 function showFlashcardEditor() {
   const d = pending.draft, cards = editorCards();
   openDialog(`<div class="editor-heading"><span class="eyebrow">FLASHCARD CỦA BẠN</span><h2 id="dialog-title">${pending.creating ? "Tạo bộ thẻ mới" : "Chỉnh sửa bộ thẻ"}</h2><p>Một ý ở mặt trước, một lời giải ở mặt sau. Tạo bộ từ vựng hoặc ghi nhớ bất kỳ chủ đề nào.</p></div>
     <form id="edit-deck-form" class="form-stack flashcard-editor">
-      <div class="editor-metadata"><label>Tên bộ thẻ<input type="text" id="edit-deck-name" maxlength="200" required value="${esc(d.name)}" placeholder="Ví dụ: Tiếng Anh mỗi ngày"></label><label>Ngôn ngữ đọc mặt trước<select id="edit-deck-language">${Object.entries({...languages, ...(!languages[d.language] ? {[d.language]: d.language} : {})}).map(([value, name]) => `<option value="${esc(value)}" ${value === d.language ? "selected" : ""}>${esc(name)}</option>`).join("")}</select></label></div>
+      <div class="editor-metadata"><label>Tên bộ thẻ<input type="text" id="edit-deck-name" maxlength="200" required value="${esc(d.name)}" placeholder="Ví dụ: Tiếng Anh mỗi ngày"></label><label>Ngôn ngữ đọc mặt trước<select id="edit-deck-language">${Object.entries({ ...languages, ...(!languages[d.language] ? { [d.language]: d.language } : {}) }).map(([value, name]) => `<option value="${esc(value)}" ${value === d.language ? "selected" : ""}>${esc(name)}</option>`).join("")}</select></label></div>
       <div class="row spread editor-section-title"><h3>Nội dung bộ thẻ</h3><span class="pill">${cards.length} thẻ</span></div>
-      ${cards.map((c, i) => `<section class="editor-card" data-edit-card="${i}"><div class="row spread"><span class="editor-card-number">THẺ ${String(i + 1).padStart(2, "0")}</span>${button("remove-edited-card", icon("close") + " Xóa thẻ", "small ghost", `data-id="${i}" aria-label="Xóa thẻ ${i + 1}"`)}</div><div class="editor-card-faces"><label><span>Mặt trước <small>Từ vựng / Câu hỏi</small></span><textarea data-field="word" required rows="3" placeholder="Điều bạn muốn ghi nhớ">${esc(c.word)}</textarea></label><label><span>Mặt sau <small>Nghĩa / Câu trả lời</small></span><textarea data-field="meaning" required rows="3" placeholder="Ý nghĩa hoặc câu trả lời">${esc(c.meaning)}</textarea></label></div><details class="editor-extras" ${c.pos || c.note ? "open" : ""}><summary>Ví dụ, ghi chú và loại từ <span>Không bắt buộc</span></summary><div class="editor-card-faces"><label>Ví dụ / Ghi chú<textarea data-field="note" rows="2" placeholder="Thêm ngữ cảnh để dễ nhớ hơn">${esc(c.note)}</textarea></label><label>Loại từ<input type="text" data-field="pos" maxlength="100" value="${esc(c.pos)}" placeholder="Ví dụ: danh từ, động từ"></label></div></details></section>`).join("")}
+      ${cards.map((c, i) => `<section class="editor-card" data-edit-card="${i}"><div class="row spread"><span class="editor-card-number">THẺ ${String(i + 1).padStart(2, "0")}</span>${button("remove-edited-card", icon("close") + " Xóa thẻ", "small ghost", `data-id="${i}" aria-label="Xóa thẻ ${i + 1}"`)}</div><div class="editor-card-faces"><label><span>Mặt trước <small>Từ vựng / Câu hỏi</small></span><textarea data-field="word" required rows="2" placeholder="Điều bạn muốn ghi nhớ">${esc(c.word)}</textarea></label><label><span>Mặt sau <small>Nghĩa / Câu trả lời</small></span><textarea data-field="meaning" required rows="2" placeholder="Ý nghĩa hoặc câu trả lời">${esc(c.meaning)}</textarea></label></div><details class="editor-extras" ${c.pos || c.note ? "open" : ""}><summary>Ví dụ, ghi chú và loại từ <span>Không bắt buộc</span></summary><div class="editor-card-faces"><label>Ví dụ / Ghi chú<textarea data-field="note" rows="1" placeholder="Thêm ngữ cảnh để dễ nhớ hơn">${esc(c.note)}</textarea></label><label>Loại từ<input type="text" data-field="pos" maxlength="100" value="${esc(c.pos)}" placeholder="Ví dụ: danh từ, động từ"></label></div></details></section>`).join("")}
       ${button("add-editor-card", icon("plus") + " Thêm thẻ", "add-card-button")}
       <p id="edit-deck-error" class="gate-error" role="alert"></p><div class="dialog-actions editor-footer"><span class="muted">Chỉ lưu khi bạn sẵn sàng.</span>${button("close-dialog", "Hủy")}<button type="submit" class="btn primary">${pending.creating ? "Tạo bộ flashcard" : "Lưu thay đổi"} ${icon("check")}</button></div>
     </form>`);
@@ -1113,6 +1541,10 @@ function removeEditedCard(index) {
     $("#edit-deck-error").textContent = "Bộ học cần giữ ít nhất một thẻ hoặc câu hỏi.";
     return;
   }
+  const dialog = $("#dialog");
+  const prevScroll = dialog ? dialog.scrollTop : 0;
+  const siblingIndex = index < editorCards().length - 1 ? index : Math.max(0, index - 1);
+
   syncDeckEditor();
   const target = editorCards()[index];
   for (const ch of pending.draft.chapters)
@@ -1121,7 +1553,24 @@ function removeEditedCard(index) {
     ch.sections = ch.sections.filter((s) => s.cards.length);
     return ch.sections.length;
   });
-  showDeckEditor();
+
+  const d = pending.draft;
+  if (d.kind !== "quiz") showFlashcardEditor();
+  else showDeckEditor();
+
+  if (dialog && prevScroll > 0) {
+    dialog.scrollTop = prevScroll;
+    const focusTarget = document.querySelector(`[data-edit-card="${siblingIndex}"] [data-action="remove-edited-card"]`);
+    if (focusTarget) {
+      try { focusTarget.focus({ preventScroll: true }); } catch (e) { }
+    }
+    requestAnimationFrame(() => {
+      dialog.scrollTop = prevScroll;
+    });
+    setTimeout(() => {
+      dialog.scrollTop = prevScroll;
+    }, 0);
+  }
 }
 function saveDeckEditor() {
   if (pending?.kind !== "edit-deck") return;
@@ -1575,7 +2024,7 @@ async function readQuizPDF(file) {
         let font;
         try {
           font = page.commonObjs.get(item.fontName);
-        } catch {}
+        } catch { }
         const boldFont =
           !!font?.bold ||
           !!font?.black ||
@@ -1978,7 +2427,7 @@ async function processUploadedFile(file) {
     let quizLines = null;
     try {
       quizLines = await readDocxLines(file);
-    } catch {}
+    } catch { }
     let tableHtml = null;
     try {
       const m = await loadMammoth();
@@ -1992,20 +2441,20 @@ async function processUploadedFile(file) {
       );
       tableHtml = res.value;
       if (!quizLines) quizLines = Core.quizLines(tableHtml);
-    } catch {}
+    } catch { }
 
     let quizParsed = null;
     if (quizLines && quizLines.length) {
       try {
         quizParsed = Core.parseQuestions(quizLines, file.name);
-      } catch {}
+      } catch { }
     }
 
     let tableParsed = null;
     if (tableHtml) {
       try {
         tableParsed = Core.parse(tableHtml, file.name);
-      } catch {}
+      } catch { }
     }
 
     uploading = false;
@@ -2188,18 +2637,18 @@ function commitImport() {
 }
 function downloadBackup(source) {
   const blob = new Blob(
-      [
-        JSON.stringify(
-          {
-            ...StorageModel.backup(source),
-            exportedAt: new Date().toISOString(),
-          },
-          null,
-          2,
-        ),
-      ],
-      { type: "application/json" },
-    ),
+    [
+      JSON.stringify(
+        {
+          ...StorageModel.backup(source),
+          exportedAt: new Date().toISOString(),
+        },
+        null,
+        2,
+      ),
+    ],
+    { type: "application/json" },
+  ),
     url = URL.createObjectURL(blob),
     a = document.createElement("a");
   a.href = url;
@@ -2233,10 +2682,12 @@ async function importBackup(file) {
     const ok = flushStorage();
     if (ok) {
       const ids = new Set(store.decks.map((d) => d.id));
-      for (const d of previous.decks)
+      for (const d of previous.decks) {
+        removeQuizDraft(d.id);
         if (!ids.has(d.id))
-          for (const kind of ["data", "progress", "stats"])
+          for (const kind of ["data", "progress", "stats", "session", "flash-session"])
             removeStorage(StorageModel.key(kind, d.id));
+      }
     }
     theme();
     view = ok ? "decks" : "storage";
@@ -2284,10 +2735,15 @@ function startFlash(cards, label) {
   };
   view = "flash";
   render();
-  scrollTo({ top: 0 });
+  revealStudyArea(".study-shell", "#flashcard");
 }
 const flashCard = () => flash.cards.find((c) => c.id === flash.queue[0]);
+function studyProgress(completed, total, label, detail = "") {
+  const percent = total ? Math.round(completed * 100 / total) : 0;
+  return `<section class="study-progress" aria-label="${esc(label)}"><div class="row spread"><strong>${esc(label)}</strong><span>${completed} / ${total} · ${percent}%</span></div><div class="progress" role="progressbar" aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${completed}"><i style="width:${percent}%"></i></div>${detail ? `<small>${esc(detail)}</small>` : ""}</section>`;
+}
 function renderFlash() {
+  saveFlashDraft();
   const c = flashCard();
   if (!c) {
     view = "flash-result";
@@ -2318,21 +2774,22 @@ function renderFlash() {
       : "NGHĨA";
   const frontBody = isQuestion
     ? flash.reverse
-      ? `<div class="flashcard-answer-box"><span class="flashcard-answer-tag">${c.type !== "short-answer" && typeof c.answer === "number" && "ABCD"[c.answer] ? "ABCD"[c.answer] : "✓"}</span><strong class="flashcard-answer-val">${esc(c.meaning)}</strong></div>${c.note ? `<div class="card-note text-preserve">${esc(c.note)}</div>` : ""}<span class="card-hint">Chạm hoặc nhấn Space để lật xem câu hỏi</span>`
+      ? `<div class="flashcard-answer-box"><span class="flashcard-answer-tag">${c.type === "true-false" ? ["T", "F"][c.answer] : c.type !== "short-answer" && typeof c.answer === "number" ? "ABCD"[c.answer] : "✓"}</span><strong class="flashcard-answer-val">${esc(c.meaning)}</strong></div>${c.note ? `<div class="card-note text-preserve">${esc(c.note)}</div>` : ""}<span class="card-hint">Chạm hoặc nhấn Space để lật xem câu hỏi</span>`
       : `<div class="card-text question-prompt ${c.word.length > 80 ? "long" : ""}">${esc(c.word)}</div>${c.options?.length ? `<div class="flashcard-options">${c.options.map((opt, i) => `<div class="flashcard-opt-item"><span class="flashcard-opt-badge">${c.type === "true-false" ? (i === 0 ? "T" : "F") : ("ABCD"[i] || (i + 1))}</span><span class="flashcard-opt-text">${esc(opt)}</span></div>`).join("")}</div>` : ""}<span class="card-hint">Chạm hoặc nhấn Space để lật xem đáp án</span>`
     : `${!flash.reverse ? "<div>" + badges(c.pos) + "</div>" : ""}<div class="card-text ${front.length > 80 ? "long" : ""}">${esc(front)}</div><span class="card-hint">Chạm hoặc nhấn Space để lật</span>`;
   const backBody = isQuestion
     ? flash.reverse
       ? `<div class="card-text question-prompt ${c.word.length > 80 ? "long" : ""}">${esc(c.word)}</div>${c.options?.length ? `<div class="flashcard-options">${c.options.map((opt, i) => `<div class="flashcard-opt-item"><span class="flashcard-opt-badge">${c.type === "true-false" ? (i === 0 ? "T" : "F") : ("ABCD"[i] || (i + 1))}</span><span class="flashcard-opt-text">${esc(opt)}</span></div>`).join("")}</div>` : ""}`
-      : `<div class="flashcard-answer-box"><span class="flashcard-answer-tag">${c.type !== "short-answer" && typeof c.answer === "number" && "ABCD"[c.answer] ? "ABCD"[c.answer] : "✓"}</span><strong class="flashcard-answer-val">${esc(c.meaning)}</strong></div>${c.options?.length ? `<div class="flashcard-options review">${c.options.map((opt, i) => `<div class="flashcard-opt-item ${i === c.answer ? "is-correct" : "is-muted"}"><span class="flashcard-opt-badge">${c.type === "true-false" ? (i === 0 ? "T" : "F") : ("ABCD"[i] || (i + 1))}</span><span class="flashcard-opt-text">${esc(opt)}</span>${i === c.answer ? '<span class="flashcard-correct-badge">✓ Đáp án đúng</span>' : ""}</div>`).join("")}</div>` : ""}${c.note ? `<div class="flashcard-note-box"><div class="flashcard-note-title">💡 Giải thích / Lời giải</div><div class="text-preserve">${esc(c.note)}</div></div>` : ""}`
+      : `<div class="flashcard-answer-box"><span class="flashcard-answer-tag">${c.type === "true-false" ? ["T", "F"][c.answer] : c.type !== "short-answer" && typeof c.answer === "number" ? "ABCD"[c.answer] : "✓"}</span><strong class="flashcard-answer-val">${esc(c.meaning)}</strong></div>${c.options?.length ? `<div class="flashcard-options review">${c.options.map((opt, i) => `<div class="flashcard-opt-item ${i === c.answer ? "is-correct" : "is-muted"}"><span class="flashcard-opt-badge">${c.type === "true-false" ? (i === 0 ? "T" : "F") : ("ABCD"[i] || (i + 1))}</span><span class="flashcard-opt-text">${esc(opt)}</span>${i === c.answer ? '<span class="flashcard-correct-badge">✓ Đáp án đúng</span>' : ""}</div>`).join("")}</div>` : ""}${c.note ? `<div class="flashcard-note-box"><div class="flashcard-note-title">💡 Giải thích / Lời giải</div><div class="text-preserve">${esc(c.note)}</div></div>` : ""}`
     : `${flash.reverse ? "<div>" + badges(c.pos) + "</div>" : ""}<div class="card-text ${back.length > 80 ? "long" : ""}">${esc(back)}</div>${c.note ? `<div class="card-note text-preserve">${esc(c.note)}</div>` : ""}`;
 
   $("#main").innerHTML =
-    `<div class="study-shell"><div class="study-top">${button("exit-study", icon("back") + " Rời phiên", "small ghost")}<h2>${esc(flash.label)}</h2></div><div class="study-progress"><div class="row spread"><span>Đã hoàn tất</span><strong>${done} / ${flash.cards.length}</strong></div><div class="progress"><i style="width:${(done * 100) / flash.cards.length}%"></i></div></div><div class="tools-row"><div class="row">${button("reverse", icon("flip") + (isQuestion ? (flash.reverse ? " Đáp án → Câu hỏi" : " Câu hỏi → Đáp án") : (flash.reverse ? " Nghĩa → Từ" : " Từ → Nghĩa")), "small", `aria-pressed="${flash.reverse}"`)}${button("shuffle-flash", icon("shuffle") + " Xáo trộn", "small")}</div><div class="row">${starButton(c.id)}${speaker(c.id)}</div></div><div class="flashcard ${flash.flipped ? "flipped" : ""}" id="flashcard" data-action="flip" role="button" tabindex="0" aria-label="${esc(flash.flipped ? back : front)}. Bấm để lật thẻ" aria-pressed="${flash.flipped}"><div class="card-inner"><div class="card-face front" aria-hidden="${flash.flipped}"><span class="card-label">${frontLabel}</span>${frontBody}</div><div class="card-face back" aria-hidden="${!flash.flipped}"><span class="card-label">${backLabel}</span>${backBody}</div></div></div><p class="study-meta">${esc(c.chapterName || "Trắc nghiệm")} / ${esc(c.sectionName || "Câu hỏi")}${flash.attempts[c.id] ? " · Ôn lại lượt 2" : ""}</p><div class="rating-row">${button("unknown", icon("back") + (isQuestion ? " Chưa nhớ" : " Chưa thuộc"), "unknown")}${button("known", (isQuestion ? "Đã nhớ " : "Đã thuộc ") + icon("check"), "primary")}</div><p class="key-hint"><kbd>Space</kbd> Lật · <kbd>←</kbd> ${isQuestion ? "Chưa nhớ" : "Chưa thuộc"} · <kbd>→</kbd> ${isQuestion ? "Đã nhớ" : "Đã thuộc"}</p><p class="muted" style="text-align:center;font-size:12px">Mỗi câu xuất hiện tối đa 2 lần/vòng. Nội dung chưa thuộc có thể học lại ở phần tổng kết.</p>${voiceNotice()}</div>`;
+    `<div class="study-shell"><div class="study-top">${button("exit-study", icon("back") + " Rời phiên", "small ghost")}<h2>${esc(flash.label)}</h2></div>${studyProgress(done, flash.cards.length, "Tiến trình Flashcard", `Đã xem ${Object.keys(flash.attempts).length} thẻ · Còn ${flash.cards.length - done} thẻ cần hoàn tất`)}<div class="tools-row"><div class="row">${button("reverse", icon("flip") + (isQuestion ? (flash.reverse ? " Đáp án → Câu hỏi" : " Câu hỏi → Đáp án") : (flash.reverse ? " Nghĩa → Từ" : " Từ → Nghĩa")), "small", `aria-pressed="${flash.reverse}"`)}${button("shuffle-flash", icon("shuffle") + " Xáo trộn", "small")}</div><div class="row">${starButton(c.id)}${speaker(c.id)}</div></div><div class="flashcard ${flash.flipped ? "flipped" : ""}" id="flashcard" data-action="flip" role="button" tabindex="0" aria-label="${esc(flash.flipped ? back : front)}. Bấm để lật thẻ" aria-pressed="${flash.flipped}"><div class="card-inner"><div class="card-face front" aria-hidden="${flash.flipped}"><span class="card-label">${frontLabel}</span>${frontBody}</div><div class="card-face back" aria-hidden="${!flash.flipped}"><span class="card-label">${backLabel}</span>${backBody}</div></div></div><p class="study-meta">${esc(c.chapterName || "Trắc nghiệm")} / ${esc(c.sectionName || "Câu hỏi")}${flash.attempts[c.id] ? " · Ôn lại lượt 2" : ""}</p><div class="rating-row">${button("unknown", icon("back") + (isQuestion ? " Chưa nhớ" : " Chưa thuộc"), "unknown")}${button("known", (isQuestion ? "Đã nhớ " : "Đã thuộc ") + icon("check"), "primary")}</div><p class="key-hint"><kbd>Space</kbd> Lật · <kbd>←</kbd> ${isQuestion ? "Chưa nhớ" : "Chưa thuộc"} · <kbd>→</kbd> ${isQuestion ? "Đã nhớ" : "Đã thuộc"}</p><p class="muted" style="text-align:center;font-size:12px">Mỗi câu xuất hiện tối đa 2 lần/vòng. Nội dung chưa thuộc có thể học lại ở phần tổng kết.</p>${voiceNotice()}</div>`;
 }
 function flip() {
   if (view !== "flash") return;
   flash.flipped = !flash.flipped;
+  saveFlashDraft();
   const el = $("#flashcard"),
     c = flashCard();
   if (!el || !c) return;
@@ -2359,8 +2816,10 @@ function rate(value) {
   if (value || flash.attempts[id] >= 2) flash.resolved[id] = value;
   else flash.queue.splice(Math.min(3, flash.queue.length), 0, id);
   flash.flipped = false;
+  saveFlashDraft();
   if (!flash.queue.length) view = "flash-result";
   render();
+  revealStudyArea(".study-shell", view === "flash" ? "#flashcard" : "");
 }
 const flashWrong = () => flash.cards.filter((c) => !flash.resolved[c.id]);
 function renderFlashResult() {
@@ -2460,22 +2919,19 @@ function renderQuizSetup() {
       "quiz-format",
       "Dạng câu",
       [
-        ["choice", "Trắc nghiệm"],
-        ["typing", "Gõ đáp án"],
-        ["mixed", "Hỗn hợp"],
+        ["choice", "Trắc nghiệm A–D"],
+        ["true-false", "Đúng / Sai (True / False)"],
+        ["typing", "Điền từ / Gõ đáp án"],
+        ["mixed", "Hỗn hợp cả 3 dạng"],
       ],
       setup.format,
     )}</div><div class="toggle-grid">${toggleHTML("quiz-power", "Power-up", setup.power)}${toggleHTML("quiz-sound", "Âm thanh", store.settings.sound)}${toggleHTML("quiz-bots", "Đua với 4 bot", setup.bots)}${toggleHTML("quiz-shuffle", "Xáo thứ tự câu hỏi", setup.shuffle)}${toggleHTML("quiz-shuffleAnswers", "Xáo đáp án A/B/C/D", setup.shuffleAnswers !== false)}${toggleHTML("quiz-auto", "Tự chuyển sau 2 giây", setup.auto)}${toggleHTML("quiz-repeat", "Lặp câu sai đến khi đúng", setup.repeat)}</div><p class="muted" style="font-size:12px">Khi bật lặp câu sai: câu sai hoặc hết giờ trở lại sau 2 câu khác (hoặc cuối hàng chờ nếu còn ít câu). Lượt ôn lại không cộng điểm; kết quả tính theo lần trả lời đầu.</p><div class="notice" id="quiz-selection"></div><div class="quiz-actions-row">${button("start-quiz", "Bắt đầu thử thách " + icon("arrow"), "primary quiz-start", 'id="start-quiz"')}${d.kind === "quiz" ? button("start-flash-from-quiz", icon("flip") + " Học Flashcard bộ này") : ""}</div><p class="muted" style="font-size:12px">Ít nhất 1 từ để chơi. Khi không đủ 4 đáp án khác nhau, câu hỏi tự chuyển sang gõ. Trả lời quiz không tự đánh dấu “Đã thuộc”.</p></section></div><div class="section-head"><h2>Thành tích theo tập nhóm đã chọn</h2></div><div id="setup-history"></div>`;
   if (d.kind === "quiz") {
-    for (const id of ["quiz-direction", "quiz-format"]) {
-      $("#" + id).closest("label").hidden = true;
-    }
+    $("#quiz-direction").closest("label").hidden = true;
     $("#quiz-direction").value = "forward";
-    $("#quiz-format").value = "choice";
     setup.direction = "forward";
-    setup.format = "choice";
     $("#start-quiz").parentElement.nextElementSibling.textContent =
-      "Mỗi câu có 4 đáp án từ tài liệu. Chọn một đáp án đúng; có thể dùng phím 1–4.";
+      "Chọn Trắc nghiệm A–D, Đúng / Sai, Điền từ hoặc trộn cả 3 dạng. Chọn đáp án bằng phím 1–4 hoặc gõ câu trả lời rồi nhấn Enter.";
   }
   updateQuizSelection();
 }
@@ -2525,7 +2981,7 @@ function prepareAudio() {
   try {
     audioContext ??= new (window.AudioContext || window.webkitAudioContext)();
     if (audioContext.state === "suspended")
-      audioContext.resume().catch(() => {});
+      audioContext.resume().catch(() => { });
   } catch (e) {
     toast("Thiết bị chưa phát được âm thanh trò chơi.");
   }
@@ -2572,11 +3028,56 @@ function startQuiz(overrideCards = null, replayConfig = null) {
     cards = cards.slice(0, Number(config.count));
   const all = originalCards(d),
     questions = cards.map((c) => {
+      let requestedFormat = config.format;
+      if (requestedFormat === "mixed") {
+        const formats = d.kind === "quiz"
+          ? ["choice", "true-false", "typing"]
+          : ["choice", "typing"];
+        requestedFormat = formats[Math.floor(Math.random() * formats.length)];
+      }
+      if (requestedFormat === "true-false") {
+        if (c.type === "true-false")
+          return {
+            card: c,
+            direction: "forward",
+            format: "choice",
+            mode: "true-false",
+            options: [...c.options],
+            fallback: false,
+          };
+        const correctAnswer = c.meaning;
+        const wrongAnswers = (c.options?.length ? c.options : pool.map((item) => item.meaning))
+          .filter((answer) => Core.normalize(answer) !== Core.normalize(correctAnswer));
+        const showCorrect = !wrongAnswers.length || Math.random() < 0.5;
+        const proposedAnswer = showCorrect
+          ? correctAnswer
+          : wrongAnswers[Math.floor(Math.random() * wrongAnswers.length)];
+        return {
+          card: c,
+          direction: "forward",
+          format: "choice",
+          mode: "true-false",
+          prompt: `${c.word}\n\nĐáp án đề xuất: ${proposedAnswer}`,
+          expected: showCorrect ? "Đúng" : "Sai",
+          options: ["Đúng", "Sai"],
+          fallback: false,
+        };
+      }
+      if (requestedFormat === "typing")
+        return {
+          card: c,
+          direction: "forward",
+          format: "typing",
+          mode: "short-answer",
+          options: null,
+          fallback: false,
+        };
       if (c.options)
         return {
           card: c,
           direction: "forward",
           format: "choice",
+          mode: c.type || "multiple-choice",
           options: config.shuffleAnswers !== false && c.options.length === 4
             ? Core.shuffle(c.options)
             : [...c.options],
@@ -2588,12 +3089,7 @@ function startQuiz(overrideCards = null, replayConfig = null) {
             ? "forward"
             : "reverse"
           : config.direction;
-      let format =
-        config.format === "mixed"
-          ? Math.random() < 0.5
-            ? "choice"
-            : "typing"
-          : config.format;
+      let format = requestedFormat;
       const options =
         format === "choice" ? Core.choices(c, pool, all, direction) : null;
       if (!options) format = "typing";
@@ -2601,6 +3097,7 @@ function startQuiz(overrideCards = null, replayConfig = null) {
         card: c,
         direction,
         format,
+        mode: format === "typing" ? "short-answer" : "multiple-choice",
         options,
         fallback: config.format === "choice" && !options,
       };
@@ -2622,21 +3119,28 @@ function startQuiz(overrideCards = null, replayConfig = null) {
     inventory: [],
     bots: config.bots
       ? [
-          { name: "Mầm", emoji: "🌱", accuracy: 0.55, speed: 0.7 },
-          { name: "Mây", emoji: "☁️", accuracy: 0.7, speed: 0.53 },
-          { name: "Cáo", emoji: "🦊", accuracy: 0.82, speed: 0.38 },
-          { name: "Sao", emoji: "🌟", accuracy: 0.92, speed: 0.22 },
-        ].map((b) => ({ ...b, score: 0, streak: 0 }))
+        { name: "Mầm", emoji: "🌱", accuracy: 0.55, speed: 0.7 },
+        { name: "Mây", emoji: "☁️", accuracy: 0.7, speed: 0.53 },
+        { name: "Cáo", emoji: "🦊", accuracy: 0.82, speed: 0.38 },
+        { name: "Sao", emoji: "🌟", accuracy: 0.92, speed: 0.22 },
+      ].map((b) => ({ ...b, score: 0, streak: 0 }))
       : [],
     scopeKey: Core.scopeKey(d.organization.mode, config.scopes),
     saved: false,
   };
   view = "quiz";
   beginQuestion();
-  scrollTo({ top: 0 });
 }
 function question() {
   return quiz.questions[quiz.index];
+}
+function questionPrompt(q) {
+  if (q.prompt != null) return q.prompt;
+  return q.direction === "forward" ? q.card.word : q.card.meaning;
+}
+function questionExpected(q) {
+  if (q.expected != null) return q.expected;
+  return q.direction === "forward" ? q.card.meaning : q.card.word;
 }
 function beginQuestion() {
   stopTimers();
@@ -2652,7 +3156,13 @@ function beginQuestion() {
   quiz.second = false;
   quiz.retryMessage = "";
   quiz.feedback = null;
+  quiz.typedAnswer = "";
   render();
+  saveQuizDraft();
+  revealStudyArea(
+    ".quiz-play",
+    question().format === "typing" ? "#quiz-answer-input" : '.answer:not([disabled])',
+  );
   timer = setInterval(tickQuiz, 100);
 }
 function tickQuiz() {
@@ -2707,7 +3217,7 @@ function powerAvailable(type) {
   if (quiz.answered || quiz.paused || quiz.used[type]) return false;
   if (type === "half") {
     const q = question(),
-      correct = q.direction === "forward" ? q.card.meaning : q.card.word;
+      correct = questionExpected(q);
     return (
       q.format === "choice" &&
       q.options.filter((v, i) => v !== correct && !quiz.hidden.includes(i))
@@ -2726,31 +3236,28 @@ function renderQuiz() {
   const q = question(),
     c = q.card,
     isWord = q.direction === "forward",
-    prompt = isWord ? c.word : c.meaning,
-    expected = isWord ? c.meaning : c.word;
+    prompt = questionPrompt(q),
+    expected = questionExpected(q);
   $("#main").innerHTML =
-    `<div class="quiz-play"><div class="quiz-toolbar"><div class="row"><span class="pill quiz-pill">✦ Quiz thử thách</span><strong>${quiz.index + 1} / ${quiz.questions.length}</strong></div><div class="row">${button("quiz-sound", store.settings.sound ? "♫ Âm thanh bật" : "♪ Âm thanh tắt", "small", `aria-pressed="${store.settings.sound}"`)}${button("pause-quiz", "Ⅱ Tạm dừng", "small", quiz.answered ? "disabled" : "")}${button("exit-study", icon("close"), "small", 'aria-label="Thoát quiz"')}</div></div><div class="game-hud"><div><small>ĐIỂM CỦA BẠN</small><strong>${quiz.score.toLocaleString("vi-VN")}</strong></div><div><small>CHUỖI ĐÚNG</small><strong>🔥 ${quiz.streak}</strong></div><div><small>THỜI GIAN</small><strong id="timer-text"></strong></div></div><div class="timer-bar" id="quiz-timer" role="progressbar" aria-label="Giây còn lại" aria-valuemin="0" aria-valuemax="${quiz.budget / 1000 || 1}"><i id="timer-fill"></i></div><div class="quiz-game-grid"><section class="panel quiz-panel"><div class="row spread"><span class="muted">${c.options ? "Chọn một đáp án đúng" : isWord ? "Chọn hoặc nhập nghĩa của từ" : "Tìm từ tương ứng với nghĩa"}</span><div class="row">${starButton(c.id)}${isWord ? speaker(c.id) : ""}</div></div>${q.repeat ? '<p class="notice" role="status">↻ Ôn lại câu đã sai · Không cộng điểm</p>' : ""}${q.fallback ? '<p class="notice">Chưa đủ 4 đáp án khác nhau; câu này chuyển sang gõ.</p>' : ""}<div class="quiz-prompt">${isWord ? "<div>" + badges(c.pos) + "</div>" : ""}${esc(prompt)}</div>${
-      q.format === "choice"
-        ? `<div class="answers game-answers">${q.options
-            .map((option, i) => {
-              const result = quiz.feedback;
-              return `<button class="btn answer option-${i} ${quiz.answered ? (option === expected ? "correct" : option === result?.answer ? "wrong" : "") : ""}" data-action="quiz-answer" data-index="${i}" ${quiz.answered || quiz.hidden.includes(i) ? "disabled" : ""}><span class="shape">${c.options ? "ABCD"[i] : ["▲", "◆", "●", "■"][i]}</span><span>${quiz.hidden.includes(i) ? "Đã loại" : esc(option)}</span><kbd>${i + 1}</kbd>${quiz.answered && option === expected ? '<span aria-label="Đáp án đúng">✓</span>' : ""}${quiz.answered && option !== expected && option === result?.answer ? '<span aria-label="Đáp án sai">✕</span>' : ""}</button>`;
-            })
-            .join("")}</div>`
-        : `<form id="quiz-answer-form" class="quiz-form"><label for="quiz-answer-input">Câu trả lời của bạn</label><input id="quiz-answer-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" ${quiz.answered ? "disabled" : ""} value="${esc(quiz.feedback?.answer || "")}" placeholder="Gõ đáp án…"><small>Không phân biệt hoa/thường hoặc khoảng trắng thừa.${!isWord ? " Chấp nhận một biến thể được ngăn bằng dấu /." : ""}</small>${!quiz.answered ? '<button class="btn primary" type="submit">Trả lời ↵</button>' : ""}</form>`
-    }${quiz.retryMessage && !quiz.answered ? `<div class="notice" role="status">${esc(quiz.retryMessage)}</div>` : ""}${quiz.answered ? `<div class="quiz-feedback ${quiz.feedback.correct ? "" : "wrong"}" role="status"><strong>${quiz.feedback.correct ? "✓ Chính xác!" : "✕ " + (quiz.feedback.timeout ? "Hết giờ. " : "") + "Không sao, thử ghi nhớ lần nữa nhé."}</strong><span>Đáp án: ${esc(expected)}</span>${quiz.feedback.repeatQueued ? "<p>Câu này sẽ xuất hiện lại sau 2 câu khác hoặc ở cuối hàng chờ nếu còn ít câu.</p>" : ""}${c.note ? `<p class="text-preserve">${esc(c.note)}</p>` : ""}<small>+${quiz.feedback.points} điểm · ${(quiz.feedback.elapsed / 1000).toFixed(1)} giây${quiz.feedback.reward ? " · Nhận: " + powerNames[quiz.feedback.reward] : ""}</small></div><div class="quiz-navigation">${speaker(c.id)}${button("quiz-next", quiz.index + 1 === quiz.questions.length ? "Xem kết quả" : "Câu tiếp " + icon("arrow"), "primary", 'id="quiz-next"')}</div>` : ""}<p class="study-meta">${esc(c.chapterName)} / ${esc(c.sectionName)}</p></section>${rankingHTML()}</div>${
-      quiz.config.power
-        ? `<div class="power-tray"><div><strong>Túi power-up</strong><small>Nhận 1 món ở chuỗi 3, 6, 9… · tối đa 3 món · phím Q/W/E theo ô</small></div><div class="row">${quiz.inventory.length ? quiz.inventory.map((p, i) => button("power", `${["Q", "W", "E"][i]} · ${powerNames[p]}`, "power-button", `data-index="${i}" ${powerAvailable(p) ? "" : "disabled"}`)).join("") : '<span class="muted">Chưa có power-up. Tiếp tục chuỗi đúng nhé!</span>'}</div><small>${
-            Object.keys(quiz.used)
-              .map((p) => powerNames[p])
-              .join(" · ")
-              ? "Đã dùng câu này: " +
-                Object.keys(quiz.used)
-                  .map((p) => powerNames[p])
-                  .join(" · ")
-              : "50/50 chỉ dùng cho trắc nghiệm; Thêm giờ chỉ dùng khi có giới hạn giờ."
-          }</small></div>`
-        : ""
+    `<div class="quiz-play"><div class="quiz-toolbar"><div class="row"><span class="pill quiz-pill">✦ Quiz thử thách</span><strong>${quiz.index + 1} / ${quiz.questions.length}</strong></div><div class="row">${button("quiz-sound", store.settings.sound ? "♫ Âm thanh bật" : "♪ Âm thanh tắt", "small", `aria-pressed="${store.settings.sound}"`)}${button("pause-quiz", "Ⅱ Tạm dừng", "small", quiz.answered ? "disabled" : "")}${button("exit-study", icon("close"), "small", 'aria-label="Thoát quiz"')}</div></div>${studyProgress(quiz.index + (quiz.answered ? 1 : 0), quiz.questions.length, "Tiến trình Quiz", "Số lượt đã trả lời, bao gồm các câu ôn lại")}<div class="game-hud"><div><small>ĐIỂM CỦA BẠN</small><strong>${quiz.score.toLocaleString("vi-VN")}</strong></div><div><small>CHUỖI ĐÚNG</small><strong>🔥 ${quiz.streak}</strong></div><div><small>THỜI GIAN</small><strong id="timer-text"></strong></div></div><div class="timer-bar" id="quiz-timer" role="progressbar" aria-label="Giây còn lại" aria-valuemin="0" aria-valuemax="${quiz.budget / 1000 || 1}"><i id="timer-fill"></i></div><div class="quiz-game-grid"><section class="panel quiz-panel"><div class="row spread"><span class="muted">${q.mode === "true-false" ? "Chọn Đúng (True) hoặc Sai (False)" : q.mode === "short-answer" ? "Điền từ hoặc câu trả lời còn thiếu" : "Chọn một đáp án đúng"}</span><div class="row">${starButton(c.id)}${isWord ? speaker(c.id) : ""}</div></div>${q.repeat ? '<p class="notice" role="status">↻ Ôn lại câu đã sai · Không cộng điểm</p>' : ""}${q.fallback ? '<p class="notice">Chưa đủ 4 đáp án khác nhau; câu này chuyển sang gõ.</p>' : ""}<div class="quiz-prompt">${isWord ? "<div>" + badges(c.pos) + "</div>" : ""}${esc(prompt)}</div>${q.format === "choice"
+      ? `<div class="answers game-answers">${q.options
+        .map((option, i) => {
+          const result = quiz.feedback;
+          return `<button class="btn answer option-${i} ${quiz.answered ? (option === expected ? "correct" : option === result?.answer ? "wrong" : "") : ""}" data-action="quiz-answer" data-index="${i}" ${quiz.answered || quiz.hidden.includes(i) ? "disabled" : ""}><span class="shape">${q.mode === "true-false" ? ["T", "F"][i] : c.options ? "ABCD"[i] : ["▲", "◆", "●", "■"][i]}</span><span>${quiz.hidden.includes(i) ? "Đã loại" : esc(option)}</span><kbd>${i + 1}</kbd>${quiz.answered && option === expected ? '<span aria-label="Đáp án đúng">✓</span>' : ""}${quiz.answered && option !== expected && option === result?.answer ? '<span aria-label="Đáp án sai">✕</span>' : ""}</button>`;
+        })
+        .join("")}</div>`
+      : `<form id="quiz-answer-form" class="quiz-form"><label for="quiz-answer-input">Câu trả lời của bạn</label><input id="quiz-answer-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" ${quiz.answered ? "disabled" : ""} value="${esc(quiz.typedAnswer || quiz.feedback?.answer || "")}" placeholder="Gõ đáp án…"><small>Không phân biệt hoa/thường hoặc khoảng trắng thừa.${!isWord ? " Chấp nhận một biến thể được ngăn bằng dấu /." : ""}</small>${!quiz.answered ? '<button class="btn primary" type="submit">Trả lời ↵</button>' : ""}</form>`
+    }${quiz.retryMessage && !quiz.answered ? `<div class="notice" role="status">${esc(quiz.retryMessage)}</div>` : ""}${quiz.answered ? `<div class="quiz-feedback ${quiz.feedback.correct ? "" : "wrong"}" role="status"><strong>${quiz.feedback.correct ? "✓ Chính xác!" : "✕ " + (quiz.feedback.timeout ? "Hết giờ. " : "") + "Không sao, thử ghi nhớ lần nữa nhé."}</strong><span>Đáp án: ${esc(expected)}</span>${quiz.feedback.repeatQueued ? "<p>Câu này sẽ xuất hiện lại sau 2 câu khác hoặc ở cuối hàng chờ nếu còn ít câu.</p>" : ""}${c.note ? `<p class="text-preserve">${esc(c.note)}</p>` : ""}<small>+${quiz.feedback.points} điểm · ${(quiz.feedback.elapsed / 1000).toFixed(1)} giây${quiz.feedback.reward ? " · Nhận: " + powerNames[quiz.feedback.reward] : ""}</small></div><div class="quiz-navigation">${speaker(c.id)}${button("quiz-next", quiz.index + 1 === quiz.questions.length ? "Xem kết quả" : "Câu tiếp " + icon("arrow"), "primary", 'id="quiz-next"')}</div>` : ""}<p class="study-meta">${esc(c.chapterName)} / ${esc(c.sectionName)}</p></section>${rankingHTML()}</div>${quiz.config.power
+      ? `<div class="power-tray"><div><strong>Túi power-up</strong><small>Nhận 1 món ở chuỗi 3, 6, 9… · tối đa 3 món · phím Q/W/E theo ô</small></div><div class="row">${quiz.inventory.length ? quiz.inventory.map((p, i) => button("power", `${["Q", "W", "E"][i]} · ${powerNames[p]}`, "power-button", `data-index="${i}" ${powerAvailable(p) ? "" : "disabled"}`)).join("") : '<span class="muted">Chưa có power-up. Tiếp tục chuỗi đúng nhé!</span>'}</div><small>${Object.keys(quiz.used)
+        .map((p) => powerNames[p])
+        .join(" · ")
+        ? "Đã dùng câu này: " +
+        Object.keys(quiz.used)
+          .map((p) => powerNames[p])
+          .join(" · ")
+        : "50/50 chỉ dùng cho trắc nghiệm; Thêm giờ chỉ dùng khi có giới hạn giờ."
+      }</small></div>`
+      : ""
     }</div>`;
   updateTimer();
   if (q.format === "typing" && !quiz.answered)
@@ -2764,12 +3271,12 @@ function submitQuiz(answer, timeout = false, alreadyTicked = false) {
     if (quiz.answered) return;
   }
   const q = question(),
-    expected = q.direction === "forward" ? q.card.meaning : q.card.word;
+    expected = questionExpected(q);
   const correct =
     !timeout &&
-    (q.card.options
-      ? answer === expected
-      : Core.matches(answer, expected, q.direction === "reverse"));
+    (q.format === "typing"
+      ? Core.matches(answer, expected, q.direction === "reverse")
+      : answer === expected);
   if (!correct && !timeout && quiz.second) {
     quiz.second = false;
     quiz.retryMessage =
@@ -2778,6 +3285,8 @@ function submitQuiz(answer, timeout = false, alreadyTicked = false) {
       const index = q.options.indexOf(answer);
       if (index >= 0) quiz.hidden.push(index);
     }
+    quiz.typedAnswer = answer;
+    saveQuizDraft();
     renderQuiz();
     return;
   }
@@ -2788,12 +3297,12 @@ function submitQuiz(answer, timeout = false, alreadyTicked = false) {
   const points = q.repeat
     ? 0
     : Core.score({
-        correct,
-        remaining: quiz.remaining,
-        limit: Number(quiz.config.time) * 1000,
-        streak: quiz.streak,
-        double: quiz.double,
-      });
+      correct,
+      remaining: quiz.remaining,
+      limit: Number(quiz.config.time) * 1000,
+      streak: quiz.streak,
+      double: quiz.double,
+    });
   quiz.score += points;
   let reward = null;
   if (
@@ -2828,6 +3337,7 @@ function submitQuiz(answer, timeout = false, alreadyTicked = false) {
     reward,
     repeatQueued,
   };
+  quiz.typedAnswer = answer;
   (q.repeat ? quiz.retryResults : quiz.results).push(quiz.feedback);
   if (!q.repeat)
     quiz.bots = quiz.bots.map((b) =>
@@ -2842,6 +3352,7 @@ function submitQuiz(answer, timeout = false, alreadyTicked = false) {
     };
   activity();
   save("stats");
+  saveQuizDraft();
   sound(correct);
   renderQuiz();
   if (quiz.config.auto)
@@ -2871,7 +3382,7 @@ function usePower(index) {
   quiz.used[type] = true;
   if (type === "half") {
     const q = question(),
-      correct = q.direction === "forward" ? q.card.meaning : q.card.word;
+      correct = questionExpected(q);
     quiz.hidden.push(
       ...Core.shuffle(
         q.options
@@ -2888,6 +3399,8 @@ function usePower(index) {
   else if (type === "second") quiz.second = true;
   renderQuiz();
   if ($("#quiz-answer-input")) $("#quiz-answer-input").value = typed;
+  quiz.typedAnswer = typed;
+  saveQuizDraft();
 }
 function pauseQuiz() {
   if (view !== "quiz" || !quiz || quiz.paused || quiz.answered) return;
@@ -2895,6 +3408,7 @@ function pauseQuiz() {
   if (quiz.answered) return;
   quiz.paused = true;
   stopTimers();
+  saveQuizDraft();
   $("#main").classList.add("paused-content");
   $("#dialog").dataset.kind = "pause";
   openDialog(
@@ -2933,6 +3447,7 @@ function finishQuiz() {
     quiz.saved = true;
     save("stats");
   }
+  removeQuizDraft(deck().id);
   view = "quiz-result";
   render();
   scrollTo({ top: 0 });
@@ -2995,7 +3510,7 @@ function showHelp() {
   }
   openDialog(
     helpContent() +
-      `<div class="dialog-actions">${button("close-dialog", "Đã hiểu", "primary")}</div>`,
+    `<div class="dialog-actions">${button("close-dialog", "Đã hiểu", "primary")}</div>`,
   );
 }
 async function unlock(code) {
@@ -3018,7 +3533,7 @@ async function unlock(code) {
     $("#gate").hidden = true;
     $("#app").hidden = false;
     $("#access-code").value = "";
-    render();
+    restoreWorkspace();
     if (quotaFailure) openStorage(true);
   } catch (e) {
     $("#gate-error").textContent = e.message;
@@ -3053,7 +3568,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   if (a === "add-editor-card") {
-    addEditorCard();
+    addEditorCard(b.dataset.cardType);
     return;
   }
   if (a === "preview-flashcard") {
@@ -3061,6 +3576,18 @@ document.addEventListener("click", (event) => {
     b.setAttribute("aria-pressed", String(back));
     b.querySelector(".preview-front").hidden = back;
     b.querySelector(".preview-back").hidden = !back;
+    return;
+  }
+  if (a === "pick-option-answer") {
+    const cardEl = b.closest("[data-edit-card]");
+    const select = cardEl?.querySelector('[data-field="answer"]');
+    if (select) {
+      select.value = id;
+      const val = Number(id);
+      cardEl.querySelectorAll(".quiz-option-item").forEach((el, idx) => {
+        el.classList.toggle("is-correct", idx === val);
+      });
+    }
     return;
   }
   if (a === "edit-saved-deck") {
@@ -3079,7 +3606,28 @@ document.addEventListener("click", (event) => {
     navigate(a);
     return;
   }
-  if (a === "upload-quiz") {
+  if (a === "flashcard") {
+    if (view === "flash-setup") { setNavigationOpen(false); return; }
+    if (!leaveSession()) return;
+    const d = deck() || store.decks[0];
+    if (!d) {
+      navigate("decks");
+      return;
+    }
+    if (d.id !== store.activeDeckId) {
+      store.activeDeckId = d.id;
+      save("meta");
+    }
+    view = "flash-setup";
+    render();
+    scrollTo({ top: 0 });
+    return;
+  }
+  if (b.id === "upload-header" || a === "upload-header") {
+    showUploadMenu();
+    return;
+  }
+  if (a === "upload-quiz" || a === "upload-quiz-guide") {
     if (!leaveSession()) return;
     showQuizImportHelp();
     return;
@@ -3171,7 +3719,7 @@ document.addEventListener("click", (event) => {
     view = "group";
     render();
     scrollTo({ top: 0 });
-  } else if (a === "upload") {
+  } else if (a === "upload" || a === "upload-vocab") {
     if ((view === "quiz" || view === "flash") && !leaveSession()) return;
     if (["quiz", "flash"].includes(view)) {
       view = "decks";
@@ -3237,6 +3785,10 @@ document.addEventListener("click", (event) => {
       setup.scopes.length === scopes.length ? [] : scopes.map((s) => s.id);
     renderQuizSetup();
   } else if (a === "start-quiz") startQuiz();
+  else if (a === "continue-flash-draft") continueFlashDraft(id);
+  else if (a === "delete-flash-draft") deleteFlashDraft(id);
+  else if (a === "continue-quiz-draft") continueQuizDraft(id);
+  else if (a === "delete-quiz-draft") deleteQuizDraft(id);
   else if (a === "quiz-answer")
     submitQuiz(question().options[Number(b.dataset.index)]);
   else if (a === "quiz-next") nextQuestion();
@@ -3300,7 +3852,8 @@ document.addEventListener("click", (event) => {
 document.addEventListener("change", (event) => {
   const el = event.target;
   if (!unlocked) return;
-  if (el.id === "quiz-file-input") importQuizFile(el.files[0]);
+  if (el.dataset.action === "change-card-type") changeEditorCardType(Number(el.dataset.id), el.value);
+  else if (el.id === "quiz-file-input") importQuizFile(el.files[0]);
   else if (el.id === "file-input") processUploadedFile(el.files[0]);
   else if (el.id === "backup-input") importBackup(el.files[0]);
   else if (el.dataset.section) {
@@ -3311,6 +3864,14 @@ document.addEventListener("change", (event) => {
   } else if (el.id === "hard-filter") {
     hardFilter = el.checked;
     updateSelection();
+  } else if (el.dataset.field === "answer") {
+    const cardEl = el.closest("[data-edit-card]");
+    if (cardEl) {
+      const val = Number(el.value);
+      cardEl.querySelectorAll(".quiz-option-item").forEach((item, idx) => {
+        item.classList.toggle("is-correct", idx === val);
+      });
+    }
   } else if (el.name === "organization")
     $("#dedupe").disabled = el.value === "split";
   else if (el.name === "quiz-target-mode") {
@@ -3359,6 +3920,16 @@ document.addEventListener("change", (event) => {
   }
 });
 document.addEventListener("input", (event) => {
+  const ta = event.target;
+  if (event.target.id === "quiz-answer-input" && quiz) {
+    quiz.typedAnswer = event.target.value;
+    saveQuizDraft();
+  }
+  if (ta?.classList?.contains("quiz-question-input") || ta?.classList?.contains("quiz-note-input")) {
+    ta.style.height = "auto";
+    const minH = ta.classList.contains("quiz-question-input") ? 36 : 32;
+    ta.style.height = Math.max(ta.scrollHeight, minH) + "px";
+  }
   if (event.target.id === "search") {
     search = event.target.value;
     renderSearch();
@@ -3460,6 +4031,22 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 window.addEventListener("pagehide", () => {
+  if (view === "flash" && flash) saveFlashDraft();
+  if (unlocked) {
+    if (view === "quiz-setup") readSetup();
+    const workspace = {
+      search, hardFilter, selectedSections: [...selectedSections], setup,
+      flash: view === "flash" && flash ? {
+        cardIds: flash.cards.map(c => c.id), queue: flash.queue,
+        attempts: flash.attempts, resolved: flash.resolved, label: flash.label,
+        reverse: flash.reverse, flipped: flash.flipped,
+      } : null,
+    };
+    try {
+      sessionStorage.setItem("la-workspace-reload", JSON.stringify({ route: currentRoute(), workspace }));
+    } catch { /* Keep navigation usable if session storage is unavailable. */ }
+  }
+  if (view === "quiz" && quiz) saveQuizDraft();
   flushStorage();
   stopTimers();
   if ("speechSynthesis" in window) speechSynthesis.cancel();
@@ -3486,6 +4073,6 @@ if (remembered === ACCESS_HASH) {
   unlocked = true;
   $("#gate").hidden = true;
   $("#app").hidden = false;
-  render();
+  restoreWorkspace();
 } else $("#access-code").focus();
 if (quotaFailure && unlocked) openStorage(true);

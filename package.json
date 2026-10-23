@@ -15,6 +15,7 @@
     "test:content-browser": "node tests/manual-content.browser.cjs",
     "test:deck-editor": "node tests/deck-editor.browser.cjs",
     "test:manual-flashcards": "node tests/manual-flashcards.browser.cjs",
+    "test:header-tabs": "node tests/header-tabs.browser.cjs",
     "test:resume-browser": "node tests/quiz-resume.browser.cjs"
   },
   "devDependencies": {

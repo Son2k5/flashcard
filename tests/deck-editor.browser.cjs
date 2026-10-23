@@ -4,7 +4,7 @@ const http = require('node:http');
 const { DOMParser } = require('linkedom');
 const html = require('./helpers/app.cjs').readAppHtml();
 const Core = new Function('DOMParser', html.match(/<script id="core">([\s\S]*?)<\/script>/)[1] + ';return Core;')(DOMParser);
-const hash = html.match(/const ACCESS_HASH='([a-f0-9]+)'/)[1];
+const hash = html.match(/const ACCESS_HASH\s*=\s*'([a-f0-9]+)'/)[1];
 const questions = Array.from({length: 12}, (_, i) => ({word: `Question ${i}`, options: ['A','B','C','D'].map(label => ({label, text: label + i})), answer: 'B', note: '', issues: []}));
 questions.push({word: 'Planet?', type: 'short-answer', options: [], answer: 'Earth', note: '', issues: []});
 questions.push({word: 'True?', type: 'true-false', options: [{label:'T',text:'True'},{label:'F',text:'False'}], answer:'T', note:'', issues:[]});

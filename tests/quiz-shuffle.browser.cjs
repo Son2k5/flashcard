@@ -4,7 +4,7 @@ const http = require('node:http');
 const { DOMParser } = require('linkedom');
 const html = require('./helpers/app.cjs').readAppHtml();
 const Core = new Function('DOMParser', html.match(/<script id="core">([\s\S]*?)<\/script>/)[1] + ';return Core;')(DOMParser);
-const hash = html.match(/const ACCESS_HASH='([a-f0-9]+)'/)[1];
+const hash = html.match(/const ACCESS_HASH\s*=\s*'([a-f0-9]+)'/)[1];
 const questions = Array.from({ length: 4 }, (_, i) => ({
   word: `Question ${i}`, options: ['A', 'B', 'C', 'D'].map(label => ({ label, text: `${label}${i}` })),
   answer: 'B', note: '', issues: [],
@@ -26,6 +26,10 @@ const server = http.createServer((req, res) => { res.setHeader('Content-Type', '
     }, { fixture, hash });
     await page.goto('http://127.0.0.1:' + server.address().port);
     await page.locator('[data-action="open-deck"]').click();await page.locator('#main [data-action="quiz-setup"]').click();
+    assert.equal(await page.locator('#quiz-format').isVisible(), true);
+    assert.deepEqual(await page.locator('#quiz-format option').allTextContents(), [
+      'Trắc nghiệm A–D', 'Đúng / Sai (True / False)', 'Điền từ / Gõ đáp án', 'Hỗn hợp cả 3 dạng'
+    ]);
     assert.equal(await page.locator('#quiz-shuffleAnswers').isChecked(), true);
     await page.locator('#quiz-shuffle').uncheck();
     await page.locator('#quiz-repeat').check();
@@ -79,6 +83,24 @@ const server = http.createServer((req, res) => { res.setHeader('Content-Type', '
       await page.setViewportSize({ width, height: 900 });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     }
+    // Existing A–D questions can be presented as True/False or typed answers.
+    await page.evaluate(() => { stopTimers(); quiz = null; view = 'quiz-setup'; render(); });
+    await page.locator('#quiz-format').selectOption('true-false');
+    await page.locator('#quiz-shuffle').uncheck();
+    await page.locator('#start-quiz').click();
+    assert.deepEqual(await page.locator('.answer .shape').allTextContents(), ['T', 'F']);
+    assert.match(await page.locator('.quiz-prompt').innerText(), /Đáp án đề xuất:/);
+    const tfAnswer = await page.evaluate(() => question().options.indexOf(questionExpected(question())));
+    await page.locator(`[data-action="quiz-answer"][data-index="${tfAnswer}"]`).click();
+    assert.equal(await page.evaluate(() => quiz.feedback.correct), true);
+    await page.evaluate(() => { stopTimers(); quiz = null; view = 'quiz-setup'; render(); });
+    await page.locator('#quiz-format').selectOption('typing');
+    await page.locator('#quiz-shuffle').uncheck();
+    await page.locator('#start-quiz').click();
+    assert.equal(await page.locator('#quiz-answer-input').isVisible(), true);
+    await page.locator('#quiz-answer-input').fill('  b0  ');
+    await page.locator('#quiz-answer-form button').click();
+    assert.equal(await page.evaluate(() => quiz.feedback.correct), true);
     assert.deepEqual(errors, []);
     console.log('Quiz shuffle: default, labels, scoring, keyboard, 50/50, repeat, replay, source integrity, opt-out, pause/resume and layout passed.');
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
