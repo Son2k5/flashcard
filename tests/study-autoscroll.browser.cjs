@@ -42,8 +42,21 @@ const server = http.createServer((req, res) => { res.setHeader('Content-Type', '
     await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
     await page.locator('#start-quiz').click();
     await page.waitForTimeout(50);
-    assert.ok(await page.locator('.quiz-play').evaluate(el => el.getBoundingClientRect().top <= 20));
+    assert.ok(await page.locator('.quiz-panel').evaluate(el => el.getBoundingClientRect().top <= 20));
     assert.equal(await page.evaluate(() => document.activeElement?.classList.contains('answer')), true);
+    for (const width of [390, 1280]) {
+      await page.setViewportSize({width,height:600});
+      for (let turn=0;turn<3;turn++) {
+        await page.locator('.answer:not([disabled])').first().click();
+        await page.waitForTimeout(100);
+        const button = await page.locator('#quiz-next').boundingBox();
+        assert.ok(button.y >= 0 && button.y + button.height <= 600, 'Next button should be visible without scrolling');
+        await page.locator('#quiz-next').click();
+        await page.waitForTimeout(100);
+        const prompt = await page.locator('.quiz-prompt').boundingBox();
+        assert.ok(prompt.y >= 0 && prompt.y < 600, 'New question should be visible');
+      }
+    }
     assert.deepEqual(errors, []);
     console.log('Study autoscroll: Flashcard and Quiz reveal the main task and focus its first control.');
   } finally {

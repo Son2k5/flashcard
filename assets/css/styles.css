@@ -3136,3 +3136,6 @@ html[data-theme="light"] .game-answers .answer {
 }
 
 .active-session-open .session-progress { display: block; height: 8px; margin-top: 9px; width: 100%; max-width: 420px; }
+
+#quiz-next { scroll-margin-block: 20px; }
+.quiz-panel { scroll-margin-top: 12px; }

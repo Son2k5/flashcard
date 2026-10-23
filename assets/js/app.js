@@ -3142,6 +3142,17 @@ function questionExpected(q) {
   if (q.expected != null) return q.expected;
   return q.direction === "forward" ? q.card.meaning : q.card.word;
 }
+function revealQuizFeedback() {
+  const next = $("#quiz-next");
+  if (!next) return;
+  const reveal = () => {
+    if (!next.isConnected || view !== "quiz" || !quiz?.answered) return;
+    next.scrollIntoView({ behavior: "instant", block: "nearest", inline: "nearest" });
+    next.focus({ preventScroll: true });
+  };
+  reveal();
+  requestAnimationFrame(() => requestAnimationFrame(reveal));
+}
 function beginQuestion() {
   stopTimers();
   quiz.answered = false;
@@ -3160,7 +3171,7 @@ function beginQuestion() {
   render();
   saveQuizDraft();
   revealStudyArea(
-    ".quiz-play",
+    ".quiz-panel",
     question().format === "typing" ? "#quiz-answer-input" : '.answer:not([disabled])',
   );
   timer = setInterval(tickQuiz, 100);
@@ -3262,7 +3273,7 @@ function renderQuiz() {
   updateTimer();
   if (q.format === "typing" && !quiz.answered)
     $("#quiz-answer-input")?.focus({ preventScroll: true });
-  if (quiz.answered) $("#quiz-next")?.focus({ preventScroll: true });
+  if (quiz.answered) revealQuizFeedback();
 }
 function submitQuiz(answer, timeout = false, alreadyTicked = false) {
   if (view !== "quiz" || !quiz || quiz.answered || quiz.paused) return;
