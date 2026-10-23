@@ -139,6 +139,5 @@ Bạn có thể host ứng dụng trên bất kỳ nền tảng tĩnh nào (Verc
 
 Các script nạp theo thứ tự `core.js` → `storage.js` → `app.js`, dùng script thường để giữ cách chạy website tĩnh. Khi triển khai, cần đưa cả `assets/` và `vendor/` lên cùng `index.html`. Công cụ đổi mã và đồng bộ `.env` cập nhật cấu hình tại `assets/js/app.js`.
 
-Responsive: thanh điều hướng tách hàng ở 1100px; bố cục quiz chuyển một cột ở 900px; màn hình đến 620px dùng một cột thẻ và biểu mẫu. Bảng dữ liệu cuộn bên trong khung, hộp thoại giới hạn theo chiều cao màn hình. Ô nhập trên thiết bị cảm ứng dùng cỡ chữ tối thiểu 16px.
 
 Chạy `npm test` để kiểm tra logic; `npm run test:responsive` để kiểm tra giao diện ở chín kích thước từ 320px đến 1440px, gồm điện thoại nằm ngang và iPad dọc/ngang. Browser test dùng Chrome tại đường dẫn mặc định trên Windows, hoặc biến `CHROME_PATH`. Ảnh kiểm tra lưu tại `screenshots/` (không đưa vào Git).

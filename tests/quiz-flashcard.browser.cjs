@@ -43,6 +43,7 @@ async function makeQuizDocx() {
     await page.goto('http://127.0.0.1:' + server.address().port);
 
     // 1. Upload multiple-choice DOCX file and check preview mode choices
+    await page.locator('[data-action="create-new"]').first().click();
     await page.locator('[data-action="upload-quiz"]').first().click();
     await page.locator('#quiz-file-input').setInputFiles({
       name: 'DiaLy.docx',
@@ -116,12 +117,13 @@ async function makeQuizDocx() {
     await page.locator('[data-action="decks"]').first().click();
     await page.waitForSelector('.deck-card');
 
-    // Verify deck card has both Flashcard and Quiz buttons
-    assert.equal(await page.locator('[data-action="open-deck-flash"]').count(), 1);
+    // The deck card has one Start button; study modes live in the library.
+    assert.equal(await page.locator('[data-action="open-deck-flash"]').count(), 0);
     assert.equal(await page.locator('[data-action="open-deck"]').count(), 1);
 
-    // Click Flashcard button from deck card
-    await page.locator('[data-action="open-deck-flash"]').click();
+    // Start opens the library, then choose Flashcard.
+    await page.locator('[data-action="open-deck"]').click();
+    await page.locator('[data-action="start-flash-all"]').click();
     await page.waitForSelector('#flashcard');
     assert.equal(await page.evaluate(() => view), 'flash');
 

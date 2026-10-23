@@ -16,9 +16,9 @@ const server=http.createServer((req,res)=>{const file=path.join(root,req.url==='
   await page.locator('#quiz-time').selectOption('0');await page.locator('#quiz-shuffle').uncheck();await page.locator('#quiz-auto').uncheck();await page.locator('#start-quiz').click();
   assert.equal(await page.locator('[data-action="quiz-answer"]').count(),2);
   await page.keyboard.press('3');assert.equal(await page.evaluate(()=>quiz.answered),false);
-  await page.locator('[data-action="quiz-answer"][data-index="0"]').click();assert.equal(await page.evaluate(()=>quiz.feedback.correct),true);
+  await page.locator(`[data-action="quiz-answer"][data-index="${await page.evaluate(()=>question().options.findIndex(v=>v === question().card.meaning))}"]`).click();assert.equal(await page.evaluate(()=>quiz.feedback.correct),true);
   await page.locator('#quiz-next').click();await page.locator('#quiz-answer-input').fill('  EARTH  ');await page.locator('#quiz-answer-form button').click();assert.equal(await page.evaluate(()=>quiz.feedback.correct),true);
-  await page.locator('#quiz-next').click();assert.equal(await page.locator('[data-action="quiz-answer"]').count(),4);await page.locator('[data-action="quiz-answer"][data-index="1"]').click();assert.equal(await page.evaluate(()=>quiz.feedback.correct),true);await page.locator('#quiz-next').click();
+  await page.locator('#quiz-next').click();assert.equal(await page.locator('[data-action="quiz-answer"]').count(),4);await page.locator(`[data-action="quiz-answer"][data-index="${await page.evaluate(()=>question().options.findIndex(v=>v === question().card.meaning))}"]`).click();assert.equal(await page.evaluate(()=>quiz.feedback.correct),true);await page.locator('#quiz-next').click();
   await page.reload();assert.deepEqual(await page.evaluate(()=>Core.flatten(deck().chapters).map(c=>c.type)),['true-false','short-answer','multiple-choice']);
   assert.equal(await page.evaluate(()=>StorageModel.migrate(StorageModel.backup(store)).decks[0].chapters[0].sections[0].cards[1].answer),'Earth');
   if(process.argv[2]) {

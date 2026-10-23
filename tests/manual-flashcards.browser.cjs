@@ -1,0 +1,114 @@
+const {chromium} = require('playwright');
+const assert = require('node:assert/strict');
+const http = require('node:http');
+const path = require('node:path');
+const os = require('node:os');
+const html = require('./helpers/app.cjs').readAppHtml();
+const hash = html.match(/const ACCESS_HASH='([a-f0-9]+)'/)[1];
+const server = http.createServer((req,res)=>{res.setHeader('Content-Type','text/html; charset=utf-8');res.end(html);});
+(async()=>{
+  await new Promise(r=>server.listen(0,'127.0.0.1',r));
+  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+  try {
+    const page=await browser.newPage(), errors=[];
+    page.on('pageerror',e=>errors.push(e.message));
+    await page.addInitScript(hash=>localStorage.setItem('la-access-v2',hash),hash);
+    await page.goto('http://127.0.0.1:'+server.address().port);
+    const click = async a=>{
+      if(a==='create-manual-deck' && !await page.locator(`[data-action="${a}"]`).count())
+        await page.locator('[data-action="create-new"]').first().click();
+      await page.locator(`[data-action="${a}"]:visible`).first().click();
+    };
+    assert.equal(await page.locator('#main [data-action="create-new"]').count(),1);
+    assert.equal(await page.locator('.deck-toolbar [data-action="storage"]').isVisible(),true);
+    assert.equal(await page.locator('#main [data-action="upload"], #main [data-action="upload-quiz"], #main [data-action="create-manual-deck"]').count(),0);
+    await click('create-new');
+    assert.equal(await page.locator('.create-mode').count(),4);
+    await page.setViewportSize({width:390,height:844});
+    assert.ok(await page.locator('#dialog').evaluate(d=>d.scrollWidth<=d.clientWidth));
+    await page.screenshot({path:path.join(os.tmpdir(),'create-menu-mobile.png')});
+    const chooser=page.waitForEvent('filechooser', {timeout:10000});await click('upload');await (await chooser).setFiles([]);
+    await click('create-new');
+    await click('upload-quiz');assert.equal(await page.locator('[data-action="choose-quiz-file"]').count(),1);
+    await click('close-dialog');await page.setViewportSize({width:1280,height:900});
+    const row = i=>page.locator(`[data-edit-card="${i}"]`);
+    const fill = async(i,front,back)=>{await row(i).locator('[data-field="word"]').fill(front);await row(i).locator('[data-field="meaning"]').fill(back);};
+    await click('create-manual-deck');
+    await page.locator('#edit-deck-name').fill('Everyday English');
+    await page.locator('#edit-deck-language').selectOption('en-US');
+    await fill(0,'Serendipity','A happy discovery by chance.');
+    await click('add-editor-card');
+    assert.equal(await row(0).locator('[data-field="word"]').inputValue(),'Serendipity');
+    await fill(1,'Resilience','The ability to recover and keep going.');
+    await click('add-editor-card');await fill(2,'Mindful','Paying attention to the present moment.');
+    await row(2).locator('summary').click();
+    await row(2).locator('[data-field="note"]').fill('Take a mindful walk.');
+    await page.screenshot({path:path.join(os.tmpdir(),'flashcard-editor-desktop.png'),fullPage:true});
+    for(const width of [320,390]) {
+      await page.setViewportSize({width,height:844});
+      assert.ok(await page.locator('#dialog').evaluate(d=>d.scrollWidth<=d.clientWidth));
+    }
+    await page.evaluate(()=>{document.documentElement.dataset.theme='dark';});
+    await page.locator('#dialog').evaluate(d=>{d.scrollTop=0;});
+    await page.screenshot({path:path.join(os.tmpdir(),'flashcard-editor-mobile-dark.png')});
+    await page.evaluate(()=>{document.documentElement.dataset.theme='light';});
+    await page.setViewportSize({width:1280,height:900});
+    await page.locator('#edit-deck-form button[type="submit"]').click();
+    assert.equal(await page.evaluate(()=>view),'library');
+    assert.equal(await page.locator('.library-flashcard').count(),3);
+    assert.equal(await page.evaluate(()=>deck().language),'en-US');
+    const preview=page.locator('[data-action="preview-flashcard"]').first();
+    await preview.click();assert.equal(await preview.getAttribute('aria-pressed'),'true');
+    assert.equal(await preview.locator('.preview-back').isVisible(),true);
+    await preview.press('Enter');assert.equal(await preview.getAttribute('aria-pressed'),'false');
+    await page.locator('#search').fill('mindful');assert.equal(await page.locator('.library-flashcard').count(),1);
+    await page.locator('#search').fill('');
+    await page.screenshot({path:path.join(os.tmpdir(),'flashcard-library-desktop.png'),fullPage:true});
+    for(const width of [320,390,768,1280]) {
+      await page.setViewportSize({width,height:900});
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    }
+    await page.setViewportSize({width:390,height:844});
+    await page.screenshot({path:path.join(os.tmpdir(),'flashcard-library-mobile.png'),fullPage:true});
+    await click('start-flash-all');await page.locator('#flashcard').click();await click('known');
+    assert.equal(await page.evaluate(()=>known(originalCards(deck()))),1);
+    page.once('dialog',d=>d.accept());await click('exit-study');
+    await page.evaluate(()=>{view='library';render();});
+    await click('edit-saved-deck');await click('add-editor-card');await fill(3,'Curiosity','A desire to learn.');
+    await page.locator('#edit-deck-form button[type="submit"]').click();
+    await page.reload();await page.evaluate(()=>{view='library';render();});
+    assert.equal(await page.locator('.library-flashcard').count(),4);
+    assert.equal(await page.evaluate(()=>known(originalCards(deck()))),1);
+    await page.evaluate(()=>StorageModel.migrate(StorageModel.backup(store)));
+    // Cancel leaves no empty deck; duplicate entries cannot silently collapse.
+    await click('create-manual-deck');await page.locator('#edit-deck-name').fill('Duplicate check');
+    await fill(0,'same','same');await click('add-editor-card');await fill(1,'same','same');
+    await page.locator('#edit-deck-form button[type="submit"]').click();
+    assert.ok((await page.locator('#edit-deck-error').innerText()).length>0);
+    assert.equal(await page.evaluate(()=>store.decks.length),1);
+    await row(1).locator('[data-action="remove-edited-card"]').click();
+    await click('close-dialog');assert.equal(await page.evaluate(()=>store.decks.length),1);
+    await click('decks');await click('create-new');await click('create-manual-quiz');
+    await page.locator('#edit-deck-name').fill('My own quiz');
+    await row(0).locator('[data-field="word"]').fill('2 + 2 = ?');
+    for (const [i,value] of ['3','4','5','6'].entries()) await row(0).locator(`[data-edit-option="${i}"]`).fill(value);
+    await row(0).locator('[data-field="answer"]').selectOption('1');
+    await row(0).locator('[data-field="note"]').fill('Two plus two equals four.');
+    await click('add-editor-card');
+    await row(1).locator('[data-field="word"]').fill('Temporary question');
+    await row(1).locator('[data-action="remove-edited-card"]').click();
+    assert.equal(await row(0).locator('[data-field="answer"]').inputValue(),'1');
+    await page.locator('#edit-deck-form button[type="submit"]').click();
+    assert.equal(await page.evaluate(()=>deck().kind),'quiz');
+    assert.equal(await page.evaluate(()=>originalCards(deck())[0].meaning),'4');
+    await page.reload();await page.evaluate(()=>{view='quiz-setup';render();});
+    await page.locator('#quiz-time').selectOption('0');await page.locator('#start-quiz').click();
+    const correct=await page.evaluate(()=>question().options.indexOf('4'));
+    await page.locator(`[data-action="quiz-answer"][data-index="${correct}"]`).click();
+    assert.equal(await page.evaluate(()=>quiz.feedback.correct),true);
+    await page.evaluate(()=>StorageModel.migrate(StorageModel.backup(store)));
+    assert.deepEqual(errors,[]);
+    console.log('Manual flashcards: creation, add/remove, validation, cancel, library flip/search, study/progress, editing, reload, backup and responsive passed.');
+    console.log('UI screenshots: '+os.tmpdir());
+  } finally {await browser.close();await new Promise(r=>server.close(r));}
+})().catch(e=>{console.error(e);process.exitCode=1;server.close();});

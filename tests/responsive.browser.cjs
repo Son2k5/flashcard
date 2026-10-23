@@ -211,6 +211,7 @@ const server = http.createServer((req, res) => {
       await check("help dialog");
       await page.locator(".dialog-close").click();
       await page.locator('[data-action="decks"]').first().click();
+      await page.locator(".deck-menu summary").first().click();
       await page.locator('[data-action="deck-settings"]').first().click();
       await check("deck settings");
       await page.locator(".dialog-close").click();
