@@ -3134,3 +3134,5 @@ html[data-theme="light"] .card-face {
 html[data-theme="light"] .game-answers .answer {
   box-shadow: 0 2px 5px #253f3014;
 }
+
+.active-session-open .session-progress { display: block; height: 8px; margin-top: 9px; width: 100%; max-width: 420px; }

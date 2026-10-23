@@ -348,7 +348,11 @@ function activeSessionsHTML(d) {
     const detail = !draft.valid ? "Phiên không còn hợp lệ · hãy xóa để bắt đầu lại" :
       type === "flash" ? Object.keys(q.resolved).length + "/" + q.cards.length + " thẻ hoàn tất" :
       (q.index + (q.answered ? 1 : 0)) + "/" + q.questions.length + " lượt đã trả lời";
-    rows.push(`<div class="active-session-row"><button type="button" class="active-session-open" data-action="continue-${type}-draft" data-id="${esc(d.id)}" ${draft.valid ? "" : "disabled"}><span class="active-session-icon">${icon(type === "flash" ? "cards" : "trophy")}</span><span><strong>${name}</strong><small>${esc(detail)}</small></span>${draft.valid ? icon("arrow") : ""}</button>${button("delete-" + type + "-draft", icon("trash"), "danger ghost active-session-delete", `data-id="${esc(d.id)}" aria-label="Xóa phiên ${name}" title="Xóa phiên ${name}"`)}</div>`);
+    const completed = !draft.valid ? 0 : type === "flash" ? Object.keys(q.resolved).length : q.index + (q.answered ? 1 : 0);
+    const total = !draft.valid ? 0 : type === "flash" ? q.cards.length : q.questions.length;
+    const percent = total ? Math.round(completed * 100 / total) : 0;
+    const progress = draft.valid ? `<span class="progress session-progress" role="progressbar" aria-label="Tiến trình ${name}" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${completed}"><i style="width:${percent}%"></i></span>` : "";
+    rows.push(`<div class="active-session-row"><button type="button" class="active-session-open" data-action="continue-${type}-draft" data-id="${esc(d.id)}" ${draft.valid ? "" : "disabled"}><span class="active-session-icon">${icon(type === "flash" ? "cards" : "trophy")}</span><span><strong>${name}</strong><small>${esc(detail)}${draft.valid ? ` · ${percent}%` : ""}</small>${progress}</span>${draft.valid ? icon("arrow") : ""}</button>${button("delete-" + type + "-draft", icon("trash"), "danger ghost active-session-delete", `data-id="${esc(d.id)}" aria-label="Xóa phiên ${name}" title="Xóa phiên ${name}"`)}</div>`);
   }
   return rows.length ? `<section class="panel active-sessions" aria-label="Phiên đang làm"><h2>Phiên đang làm</h2>${rows.join("")}</section>` : "";
 }
@@ -2738,10 +2742,6 @@ function startFlash(cards, label) {
   revealStudyArea(".study-shell", "#flashcard");
 }
 const flashCard = () => flash.cards.find((c) => c.id === flash.queue[0]);
-function studyProgress(completed, total, label, detail = "") {
-  const percent = total ? Math.round(completed * 100 / total) : 0;
-  return `<section class="study-progress" aria-label="${esc(label)}"><div class="row spread"><strong>${esc(label)}</strong><span>${completed} / ${total} · ${percent}%</span></div><div class="progress" role="progressbar" aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${completed}"><i style="width:${percent}%"></i></div>${detail ? `<small>${esc(detail)}</small>` : ""}</section>`;
-}
 function renderFlash() {
   saveFlashDraft();
   const c = flashCard();
@@ -2752,8 +2752,7 @@ function renderFlash() {
   }
   const isQuestion = Boolean(c.options?.length || c.type || deck()?.kind === "quiz");
   const front = flash.reverse ? c.meaning : c.word,
-    back = flash.reverse ? c.word : c.meaning,
-    done = Object.keys(flash.resolved).length;
+    back = flash.reverse ? c.word : c.meaning;
   const frontLabel = isQuestion
     ? flash.reverse
       ? "ĐÁP ÁN ĐÚNG"
@@ -2784,7 +2783,7 @@ function renderFlash() {
     : `${flash.reverse ? "<div>" + badges(c.pos) + "</div>" : ""}<div class="card-text ${back.length > 80 ? "long" : ""}">${esc(back)}</div>${c.note ? `<div class="card-note text-preserve">${esc(c.note)}</div>` : ""}`;
 
   $("#main").innerHTML =
-    `<div class="study-shell"><div class="study-top">${button("exit-study", icon("back") + " Rời phiên", "small ghost")}<h2>${esc(flash.label)}</h2></div>${studyProgress(done, flash.cards.length, "Tiến trình Flashcard", `Đã xem ${Object.keys(flash.attempts).length} thẻ · Còn ${flash.cards.length - done} thẻ cần hoàn tất`)}<div class="tools-row"><div class="row">${button("reverse", icon("flip") + (isQuestion ? (flash.reverse ? " Đáp án → Câu hỏi" : " Câu hỏi → Đáp án") : (flash.reverse ? " Nghĩa → Từ" : " Từ → Nghĩa")), "small", `aria-pressed="${flash.reverse}"`)}${button("shuffle-flash", icon("shuffle") + " Xáo trộn", "small")}</div><div class="row">${starButton(c.id)}${speaker(c.id)}</div></div><div class="flashcard ${flash.flipped ? "flipped" : ""}" id="flashcard" data-action="flip" role="button" tabindex="0" aria-label="${esc(flash.flipped ? back : front)}. Bấm để lật thẻ" aria-pressed="${flash.flipped}"><div class="card-inner"><div class="card-face front" aria-hidden="${flash.flipped}"><span class="card-label">${frontLabel}</span>${frontBody}</div><div class="card-face back" aria-hidden="${!flash.flipped}"><span class="card-label">${backLabel}</span>${backBody}</div></div></div><p class="study-meta">${esc(c.chapterName || "Trắc nghiệm")} / ${esc(c.sectionName || "Câu hỏi")}${flash.attempts[c.id] ? " · Ôn lại lượt 2" : ""}</p><div class="rating-row">${button("unknown", icon("back") + (isQuestion ? " Chưa nhớ" : " Chưa thuộc"), "unknown")}${button("known", (isQuestion ? "Đã nhớ " : "Đã thuộc ") + icon("check"), "primary")}</div><p class="key-hint"><kbd>Space</kbd> Lật · <kbd>←</kbd> ${isQuestion ? "Chưa nhớ" : "Chưa thuộc"} · <kbd>→</kbd> ${isQuestion ? "Đã nhớ" : "Đã thuộc"}</p><p class="muted" style="text-align:center;font-size:12px">Mỗi câu xuất hiện tối đa 2 lần/vòng. Nội dung chưa thuộc có thể học lại ở phần tổng kết.</p>${voiceNotice()}</div>`;
+    `<div class="study-shell"><div class="study-top">${button("exit-study", icon("back") + " Rời phiên", "small ghost")}<h2>${esc(flash.label)}</h2></div><div class="tools-row"><div class="row">${button("reverse", icon("flip") + (isQuestion ? (flash.reverse ? " Đáp án → Câu hỏi" : " Câu hỏi → Đáp án") : (flash.reverse ? " Nghĩa → Từ" : " Từ → Nghĩa")), "small", `aria-pressed="${flash.reverse}"`)}${button("shuffle-flash", icon("shuffle") + " Xáo trộn", "small")}</div><div class="row">${starButton(c.id)}${speaker(c.id)}</div></div><div class="flashcard ${flash.flipped ? "flipped" : ""}" id="flashcard" data-action="flip" role="button" tabindex="0" aria-label="${esc(flash.flipped ? back : front)}. Bấm để lật thẻ" aria-pressed="${flash.flipped}"><div class="card-inner"><div class="card-face front" aria-hidden="${flash.flipped}"><span class="card-label">${frontLabel}</span>${frontBody}</div><div class="card-face back" aria-hidden="${!flash.flipped}"><span class="card-label">${backLabel}</span>${backBody}</div></div></div><p class="study-meta">${esc(c.chapterName || "Trắc nghiệm")} / ${esc(c.sectionName || "Câu hỏi")}${flash.attempts[c.id] ? " · Ôn lại lượt 2" : ""}</p><div class="rating-row">${button("unknown", icon("back") + (isQuestion ? " Chưa nhớ" : " Chưa thuộc"), "unknown")}${button("known", (isQuestion ? "Đã nhớ " : "Đã thuộc ") + icon("check"), "primary")}</div><p class="key-hint"><kbd>Space</kbd> Lật · <kbd>←</kbd> ${isQuestion ? "Chưa nhớ" : "Chưa thuộc"} · <kbd>→</kbd> ${isQuestion ? "Đã nhớ" : "Đã thuộc"}</p><p class="muted" style="text-align:center;font-size:12px">Mỗi câu xuất hiện tối đa 2 lần/vòng. Nội dung chưa thuộc có thể học lại ở phần tổng kết.</p>${voiceNotice()}</div>`;
 }
 function flip() {
   if (view !== "flash") return;
@@ -2871,6 +2870,7 @@ function renderQuizSetup() {
       "Một cuộc đua nhỏ với chính bạn. Chơi một người; đối thủ mô phỏng luôn được ghi nhãn Bot.",
       `<span class="pill quiz-pill">✦ SẴN SÀNG BỨT PHÁ?</span>`,
     ) +
+    activeSessionsHTML(d) +
     `<div class="quiz-setup"><section class="panel"><h2>01 · Chọn sân chơi</h2>${selectHTML(
       "quiz-deck",
       "Bộ học",
@@ -3239,7 +3239,7 @@ function renderQuiz() {
     prompt = questionPrompt(q),
     expected = questionExpected(q);
   $("#main").innerHTML =
-    `<div class="quiz-play"><div class="quiz-toolbar"><div class="row"><span class="pill quiz-pill">✦ Quiz thử thách</span><strong>${quiz.index + 1} / ${quiz.questions.length}</strong></div><div class="row">${button("quiz-sound", store.settings.sound ? "♫ Âm thanh bật" : "♪ Âm thanh tắt", "small", `aria-pressed="${store.settings.sound}"`)}${button("pause-quiz", "Ⅱ Tạm dừng", "small", quiz.answered ? "disabled" : "")}${button("exit-study", icon("close"), "small", 'aria-label="Thoát quiz"')}</div></div>${studyProgress(quiz.index + (quiz.answered ? 1 : 0), quiz.questions.length, "Tiến trình Quiz", "Số lượt đã trả lời, bao gồm các câu ôn lại")}<div class="game-hud"><div><small>ĐIỂM CỦA BẠN</small><strong>${quiz.score.toLocaleString("vi-VN")}</strong></div><div><small>CHUỖI ĐÚNG</small><strong>🔥 ${quiz.streak}</strong></div><div><small>THỜI GIAN</small><strong id="timer-text"></strong></div></div><div class="timer-bar" id="quiz-timer" role="progressbar" aria-label="Giây còn lại" aria-valuemin="0" aria-valuemax="${quiz.budget / 1000 || 1}"><i id="timer-fill"></i></div><div class="quiz-game-grid"><section class="panel quiz-panel"><div class="row spread"><span class="muted">${q.mode === "true-false" ? "Chọn Đúng (True) hoặc Sai (False)" : q.mode === "short-answer" ? "Điền từ hoặc câu trả lời còn thiếu" : "Chọn một đáp án đúng"}</span><div class="row">${starButton(c.id)}${isWord ? speaker(c.id) : ""}</div></div>${q.repeat ? '<p class="notice" role="status">↻ Ôn lại câu đã sai · Không cộng điểm</p>' : ""}${q.fallback ? '<p class="notice">Chưa đủ 4 đáp án khác nhau; câu này chuyển sang gõ.</p>' : ""}<div class="quiz-prompt">${isWord ? "<div>" + badges(c.pos) + "</div>" : ""}${esc(prompt)}</div>${q.format === "choice"
+    `<div class="quiz-play"><div class="quiz-toolbar"><div class="row"><span class="pill quiz-pill">✦ Quiz thử thách</span><strong>${quiz.index + 1} / ${quiz.questions.length}</strong></div><div class="row">${button("quiz-sound", store.settings.sound ? "♫ Âm thanh bật" : "♪ Âm thanh tắt", "small", `aria-pressed="${store.settings.sound}"`)}${button("pause-quiz", "Ⅱ Tạm dừng", "small", quiz.answered ? "disabled" : "")}${button("exit-study", icon("close"), "small", 'aria-label="Thoát quiz"')}</div></div><div class="game-hud"><div><small>ĐIỂM CỦA BẠN</small><strong>${quiz.score.toLocaleString("vi-VN")}</strong></div><div><small>CHUỖI ĐÚNG</small><strong>🔥 ${quiz.streak}</strong></div><div><small>THỜI GIAN</small><strong id="timer-text"></strong></div></div><div class="timer-bar" id="quiz-timer" role="progressbar" aria-label="Giây còn lại" aria-valuemin="0" aria-valuemax="${quiz.budget / 1000 || 1}"><i id="timer-fill"></i></div><div class="quiz-game-grid"><section class="panel quiz-panel"><div class="row spread"><span class="muted">${q.mode === "true-false" ? "Chọn Đúng (True) hoặc Sai (False)" : q.mode === "short-answer" ? "Điền từ hoặc câu trả lời còn thiếu" : "Chọn một đáp án đúng"}</span><div class="row">${starButton(c.id)}${isWord ? speaker(c.id) : ""}</div></div>${q.repeat ? '<p class="notice" role="status">↻ Ôn lại câu đã sai · Không cộng điểm</p>' : ""}${q.fallback ? '<p class="notice">Chưa đủ 4 đáp án khác nhau; câu này chuyển sang gõ.</p>' : ""}<div class="quiz-prompt">${isWord ? "<div>" + badges(c.pos) + "</div>" : ""}${esc(prompt)}</div>${q.format === "choice"
       ? `<div class="answers game-answers">${q.options
         .map((option, i) => {
           const result = quiz.feedback;
